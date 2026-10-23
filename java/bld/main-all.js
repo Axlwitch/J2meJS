@@ -1,4 +1,3 @@
-
 //var midiplayer;
 
 //debugString ByteStream.readString(readStringFast)
@@ -22,7 +21,7 @@ var lcdHeight=320;
 //1是pAudio, pAudio已经被移除
 //2是webaudio-tinysynth
 //3是Audio标签
-var midimode=2;
+var midimode=3;
 window.AudioContext = window.AudioContext || window.webkitAudioContext
 if(!window.AudioContext)
 {
@@ -1401,7 +1400,7 @@ if (typeof module === "object") {
   var OBJECT_STORE_WITH_UNCOMPRESSED_LEN = "files_v2";
   var KEY_PATH = "jarName";
   var database;
-  var jars = [];
+  var jars = new Map;
   var jad;
   var upgrade = {"0to1":function(database, transaction, next) {
     database.createObjectStore(OBJECT_STORE_OLD, {keyPath:KEY_PATH});
@@ -1490,7 +1489,7 @@ if (typeof module === "object") {
       config.midletClassName = a;
       console.log("load main class :",config.midletClassName);
     }
-    jars.push([jarName, {directory:zip.directory, isBuiltIn:isBuiltIn}]);
+    jars.set(jarName, {directory:zip.directory, isBuiltIn:isBuiltIn});
   }
 
   function deleteJar(jarName)
@@ -1522,7 +1521,7 @@ if (typeof module === "object") {
           reject(request.error.name);
         };
         transaction.oncomplete = function() {
-          jars.push([jarName, {directory:zip.directory, isBuiltIn:false}]);
+          jars.set(jarName, {directory:zip.directory, isBuiltIn:false});
           jad = jadData;
           resolve();
         };
@@ -1541,7 +1540,7 @@ if (typeof module === "object") {
         };
         transaction.oncomplete = function() {
           if (request.result) {
-            jars.push([jarName, {directory:request.result.jar, isBuiltIn:false}]);
+            jars.set(jarName, {directory:request.result.jar, isBuiltIn:false});
             if (request.result.jad) {
               jad = request.result.jad;
             }
@@ -1553,17 +1552,8 @@ if (typeof module === "object") {
       });
     });
   }
-
-  function getJarFromName(name){
-    for(var i=0;i<jars.length;i++){
-      if(jars[i][0]==name){
-        return jars[i][1];
-      }
-    }
-  }
-
   function loadFileFromJAR(jarName, fileName) {
-    var jar = getJarFromName(jarName);
+    var jar = jars.get(jarName);
     if (!jar) {
       return null;
     }
@@ -1586,9 +1576,10 @@ if (typeof module === "object") {
     }
     return bytes;
   }
-  function loadFile(fileName) { 
-    for (var i = 0; i < jars.length; i++) {  
-      var jarName=jars[i][0];
+  function loadFile(fileName) {
+    var datas = jars.keys(); 
+    for (var i = 0; i < jars.size; i++) {  
+      var jarName=datas.next().value;
       var data = loadFileFromJAR(jarName, fileName);
       if (data) {
         return data;
@@ -1601,7 +1592,7 @@ if (typeof module === "object") {
   function clear() {
     return openDatabase.then(function() {
       return new Promise(function(resolve, reject) {
-        jars=[];
+        jars.clear();
         var transaction = database.transaction(OBJECT_STORE_WITH_UNCOMPRESSED_LEN, "readwrite");
         var objectStore = transaction.objectStore(OBJECT_STORE_WITH_UNCOMPRESSED_LEN);
         var request = objectStore.clear();
@@ -3353,11 +3344,11 @@ var fs = function() {
   function init(cb) {
     store.init(function() {
       setTimeout(function() {
-        setInterval(flushAll, 5E3);
+        setInterval(flushAll, 30E3);
       }, 2E4);
 
       setTimeout(function() {
-        setInterval(flushAllRms, 1E3);
+        setInterval(flushAllRms, 10E3);
       }, 1E3);
 
       initRootDir();
@@ -6639,7 +6630,7 @@ if (typeof module !== "undefined" && module.exports) {
     var value;
     switch(key) {
       case "com.sun.midp.publickeystore.WebPublicKeyStore":
-        if (config.midletClassName == "RunTestsMIDlet" || config.midletClassName.indexOf("benchmark")==0) {
+        if (config.midletClassName == "RunTestsMIDlet" || config.midletClassName.startsWith("benchmark")) {
           value = "_test.ks";
         } else {
           value = "_main.ks";
@@ -8283,7 +8274,6 @@ var currentlyFocusedTextEditor;
     return J2ME.Constants.NULL;
   };
   Native["com/sun/midp/lcdui/DisplayDevice.isDisplayPrimary0.(I)Z"] = function(addr, id) {
-    //console.warn("DisplayDevice.isDisplayPrimary0.(I)Z not implemented (" + id + ")");
     return 1;
   };
   Native["com/sun/midp/lcdui/DisplayDevice.isbuildInDisplay0.(I)Z"] = function(addr, id) {
@@ -14190,14 +14180,13 @@ var profile = 0;
 var jvm = new JVM;
 if ("gamepad" in config && !/no|0/.test(config.gamepad)) {
   document.documentElement.classList.add("gamepad");
-}  
-console.log("config.gamepadSize "+config.gamepadSize);
+} 
+//console.log(config.gamepadSize)
 if(config.gamepad)
 {
   if(config.gamepadSize)
   {
-    document.getElementById("gamepad").className = config.gamepadSize; 
-    
+    document.getElementById("gamepad").classList = config.gamepadSize; 
   }
 }
 
@@ -14241,15 +14230,8 @@ if(!isIndex)
     classedjarname='java/'+enginemode;
   }
   loadingPromises.push(load(classedjarname, "arraybuffer").then(function(data) {
-    console.log("buildin enter");
-    try{
-      JARStore.addBuiltIn("java/classes.jar", data);
-      CLASSES.initializeBuiltinClasses();
-    }
-    catch(err){
-      console.error(err);
-    }
-    console.log("buildin out");
+    JARStore.addBuiltIn("java/classes.jar", data);
+    CLASSES.initializeBuiltinClasses();
   }));
 } 
 //console.log(config.localjar)
@@ -14429,7 +14411,7 @@ function start() {
       {
         return;
       }
-      if(JARStore.getjars().length > 1 && !isIndex)
+      if(JARStore.getjars().size>1 && !isIndex)
       {
         console.log('开始执行jars'); 
         run();
