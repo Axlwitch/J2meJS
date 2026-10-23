@@ -2,145 +2,440 @@
 <html>
 	<head>
 		<meta charset="utf-8">
-		<title>j2me在线模拟器</title>
+		<title>J2ME Online Emulator</title>
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
 		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1">
 		 
   		<link rel="stylesheet" type="text/css" href="style/index.css">
 		<!-- Required for non-UTF encodings -->
 		<script src="libs/encoding.js"></script>
-		<!-- Load config scripts separately because compiled-method-cache.js
-     - depends on them. -->
+		<!-- Load config scripts -->
 		<script type="text/javascript" src="config/default.js" defer></script>
 		<script type="text/javascript" src="config/runtests.js" defer></script>
 		<script type="text/javascript" src="config/build.js" defer></script>
 		<script type="text/javascript" src="config/urlparams.js" defer></script>
 
-
-		<!--<script type="text/javascript" src="libs/terminal.js" defer></script>-->
-
-		<!-- Load promise-6.0.0.js and IndexedDB-getAll-shim.js separately
-     - because compiled-method-cache.js depends on them. -->
 		<script type="text/javascript" src="libs/promise-6.0.0.js" defer></script>
 		<script type="text/javascript" src="polyfill/IndexedDB-getAll-shim.js" defer></script>
-
-		<!-- Load compiled-method-cache.js separately because j2me.js depends on it. -->
 		<script type="text/javascript" src="libs/compiled-method-cache.js" defer></script>
-
-		<!-- Load bld/native.js separately because adding it to main-all.js
-     - throws an "asm.js type error". -->
 		<script type="text/javascript" src="bld/native.js" defer></script>
-
-		<!-- Load j2me.js separately because classes.jar.js depends on it (it adds
-     - members to the AOTMD hash that j2me.js defines); and also so its source
-     - map gets loaded by the debugger. -->
 		<script type="text/javascript" src="bld/j2me.js" defer></script>
-
-		<!-- Run `make aot` to generate these.  Load them separately, because adding
-     - classes.jar.js to main-all.js fails silently for unknown reasons. -->
-		<!--<script type="text/javascript" src="bld/classes.jar.js" defer></script>-->
-		<!--<script type="text/javascript" src="bld/program.jar.js" defer></script>-->
-		<!--<script type="text/javascript" src="bld/tests.jar.js" defer></script>-->
-
-		<!-- Load the rest of the scripts from the combined script main-all.js
-     - to improve startup and runtime performance.  See Makefile for the list
-     - of files that get combined into this one. -->
 		<script type="text/javascript" src="bld/main-all.js" defer></script>
 
+		<style>
+			body {
+				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+				padding: 10px;
+				background-color: #f8f9fa;
+				color: #333;
+			}
+			/* Styling Daftar Game */
+			.game-grid {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 10px;
+				margin-bottom: 15px;
+			}
+			.game-card {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				width: 80px;
+				padding: 8px;
+				background: #ffffff;
+				border: 1px solid #e0e0e0;
+				border-radius: 8px;
+				text-decoration: none;
+				color: #333;
+				box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+				position: relative;
+				cursor: pointer;
+			}
+			.game-card img {
+				border-radius: 6px;
+			}
+			.game-card span {
+				font-size: 11px;
+				margin-top: 6px;
+				text-align: center;
+				word-break: break-word;
+			}
+			
+			/* Delete Button */
+			.game-card .delete-btn {
+				position: absolute;
+				top: -6px;
+				right: -6px;
+				background: #dc3545;
+				color: white;
+				border: none;
+				border-radius: 50%;
+				width: 20px;
+				height: 20px;
+				font-size: 12px;
+				cursor: pointer;
+				display: none;
+				line-height: 20px;
+				text-align: center;
+				padding: 0;
+				z-index: 10;
+			}
+			.game-card:hover .delete-btn { display: block; }
+
+			/* Add Card */
+			.game-card.add-card {
+				border: 2px dashed #007bff;
+				background: #f0f8ff;
+				cursor: pointer;
+			}
+			.game-card.add-card:hover { background: #e0f0ff; }
+			.game-card.add-card .add-icon { font-size: 32px; color: #007bff; }
+			.game-card.add-card span { color: #007bff; }
+
+			/* Styling Container Opsi List Tombol */
+			.option-group {
+				margin-bottom: 12px;
+				background: #ffffff;
+				padding: 10px;
+				border-radius: 8px;
+				border: 1px solid #e0e0e0;
+			}
+			.option-title {
+				font-weight: bold;
+				font-size: 12px;
+				margin-bottom: 6px;
+				color: #555;
+			}
+			.button-list {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 6px;
+				max-height: 110px;
+				overflow-y: auto;
+			}
+			.btn-opt {
+				padding: 6px 10px;
+				background-color: #f0f0f0;
+				border: 1px solid #ccc;
+				border-radius: 5px;
+				font-size: 11px;
+				cursor: pointer;
+				color: #333;
+			}
+			.btn-opt.active {
+				background-color: #007bff;
+				color: #ffffff;
+				border-color: #0056b3;
+				font-weight: bold;
+			}
+
+			/* Area Kontrol Tombol Action */
+			.action-buttons {
+				display: flex;
+				gap: 8px;
+				margin-top: 10px;
+				flex-wrap: wrap;
+			}
+			.btn-act {
+				flex: 1;
+				min-width: 90px;
+				padding: 8px 12px;
+				background: #28a745;
+				color: white;
+				border: none;
+				border-radius: 5px;
+				font-weight: bold;
+				font-size: 12px;
+				cursor: pointer;
+				text-align: center;
+			}
+			.btn-act.btn-run { background-color: #007bff; }
+			.btn-act.btn-del { background-color: #dc3545; }
+			.btn-act.btn-add { background-color: #17a2b8; }
+
+			/* Sembunyikan Select Asli */
+			.hidden-select { display: none !important; }
+
+			/* ===== MODAL ADD GAME ===== */
+			.modal-overlay {
+				display: none;
+				position: fixed;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				background: rgba(0,0,0,0.7);
+				z-index: 9999;
+				justify-content: center;
+				align-items: center;
+			}
+			.modal-overlay.active { display: flex; }
+
+			.modal-content {
+				background: #1a1a1a;
+				color: #e0e0e0;
+				border-radius: 12px;
+				width: 95%;
+				max-width: 600px;
+				max-height: 90vh;
+				display: flex;
+				flex-direction: column;
+				overflow: hidden;
+				border: 1px solid #333;
+				box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+			}
+			.modal-header {
+				padding: 12px 16px;
+				background: #252525;
+				border-bottom: 1px solid #333;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				flex-shrink: 0;
+			}
+			.modal-header h3 { font-size: 14px; color: #ffd700; margin: 0; }
+			.modal-header .close-btn {
+				background: none;
+				border: none;
+				color: #888;
+				font-size: 20px;
+				cursor: pointer;
+			}
+			.modal-header .close-btn:hover { color: #fff; }
+
+			.modal-body { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+			.modal-path {
+				padding: 6px 12px;
+				background: #111;
+				font-size: 11px;
+				color: #888;
+				border-bottom: 1px solid #2a2a2a;
+				display: flex;
+				justify-content: space-between;
+				flex-shrink: 0;
+			}
+			.modal-path span { color: #0f0; }
+
+			.modal-file-list {
+				flex: 1;
+				overflow-y: auto;
+				padding: 4px 0;
+				background: #141414;
+				min-height: 200px;
+			}
+			.modal-file-item {
+				display: flex;
+				align-items: center;
+				padding: 10px 14px;
+				border-bottom: 1px solid #222;
+				cursor: pointer;
+				transition: background 0.15s;
+			}
+			.modal-file-item:hover { background: #2a2a2a; }
+			.modal-file-item:active { background: #333; }
+			.modal-file-item .icon { font-size: 18px; margin-right: 10px; width: 28px; text-align: center; }
+			.modal-file-item .info { flex: 1; overflow: hidden; }
+			.modal-file-item .name { font-size: 13px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+			.modal-file-item .sub { font-size: 10px; color: #666; }
+			.modal-file-item.dir .name { color: #ffd700; font-weight: bold; }
+			.modal-file-item.selected { background: #1a3a5a; border-left: 3px solid #00ff88; }
+
+			.modal-footer {
+				padding: 10px 16px;
+				background: #1f1f1f;
+				border-top: 1px solid #2a2a2a;
+				display: flex;
+				gap: 8px;
+				flex-wrap: wrap;
+				flex-shrink: 0;
+			}
+			.modal-footer button {
+				padding: 8px 16px;
+				border: none;
+				border-radius: 4px;
+				font-size: 12px;
+				cursor: pointer;
+				font-weight: bold;
+			}
+			.btn-modal-primary { background: #007bff; color: white; }
+			.btn-modal-primary:disabled { background: #444; color: #888; cursor: not-allowed; }
+			.btn-modal-success { background: #28a745; color: white; }
+			.btn-modal-danger { background: #dc3545; color: white; }
+			.btn-modal-secondary { background: #444; color: #ccc; }
+
+			/* Toast */
+			#toast-msg {
+				position: fixed;
+				top: 20px;
+				left: 50%;
+				transform: translateX(-50%);
+				background: rgba(0,0,0,0.9);
+				color: #0f0;
+				border: 1px solid #0f0;
+				padding: 8px 16px;
+				border-radius: 20px;
+				font-size: 11px;
+				z-index: 99999;
+				display: none;
+				box-shadow: 0 0 15px rgba(0,255,0,0.3);
+			}
+		</style>
 	</head>
 	<body> 
 		<input id="jarFileupload" accept=".jar" type="file" style="visibility: hidden;display:none;" />
 		
-		<p> <a href="/" style="font-weight: bold"><h3> 回到主页 </h3></a></p>
+		<p><a href="/" style="font-weight: bold; text-decoration: none;"><h3>&larr; Back to Home</h3></a></p>
 
-		<h3>游戏列表：</h3>
-		<div id="gameListDiv"
-			style="display:flex;flex-wrap: wrap; margin-bottom: 10px; float:left;align-items: center;">
+		<h3>Game List:</h3>
+		<div id="gameListDiv" class="game-grid"></div>
+
+		<div>
+			<!-- Group 1: Canvas Size -->
+			<div class="option-group">
+				<div class="option-title">Display Size:</div>
+				<div id="listCanvasSize" class="button-list">
+					<button type="button" class="btn-opt" onclick="setOpt('canvasSize', 0, this)">240x320</button>
+					<button type="button" class="btn-opt" onclick="setOpt('canvasSize', 1, this)">320x240</button>
+					<button type="button" class="btn-opt" onclick="setOpt('canvasSize', 2, this)">128x128</button>
+					<button type="button" class="btn-opt" onclick="setOpt('canvasSize', 3, this)">176x220</button>
+					<button type="button" class="btn-opt" onclick="setOpt('canvasSize', 4, this)">240x400</button>
+					<button type="button" class="btn-opt" onclick="setOpt('canvasSize', 5, this)">400x240</button>
+					<button type="button" class="btn-opt" onclick="setOpt('canvasSize', 6, this)">360x640</button>
+					<button type="button" class="btn-opt" onclick="setOpt('canvasSize', 7, this)">640x360</button>
+					<button type="button" class="btn-opt" onclick="setOpt('canvasSize', 8, this)">480x800</button>
+					<button type="button" class="btn-opt" onclick="setOpt('canvasSize', 9, this)">800x480</button>
+					<button type="button" class="btn-opt active" onclick="setOpt('canvasSize', 10, this)">Unlimited</button>
+				</div>
+			</div>
+
+			<!-- Group 2: Virtual Keypad -->
+			<div class="option-group">
+				<div class="option-title">Virtual Keypad:</div>
+				<div id="listGamepadSize" class="button-list">
+					<button type="button" class="btn-opt active" onclick="setOpt('gamepadSize', 0, this)">None</button>
+					<button type="button" class="btn-opt" onclick="setOpt('gamepadSize', 1, this)">Small</button>
+					<button type="button" class="btn-opt" onclick="setOpt('gamepadSize', 2, this)">Medium</button>
+					<button type="button" class="btn-opt" onclick="setOpt('gamepadSize', 3, this)">Large</button>
+					<button type="button" class="btn-opt" onclick="setOpt('gamepadSize', 4, this)">Extra Large</button>
+				</div>
+			</div>
+
+			<!-- Group 3: Scaling -->
+			<div class="option-group">
+				<div class="option-title">Display Scaling:</div>
+				<div id="listGameResize" class="button-list">
+					<button type="button" class="btn-opt active" onclick="setOpt('gameresize', 0, this)">1.0x (No Scale)</button>
+					<button type="button" class="btn-opt" onclick="setOpt('gameresize', 1, this)">0.5x</button>
+					<button type="button" class="btn-opt" onclick="setOpt('gameresize', 2, this)">0.75x</button>
+					<button type="button" class="btn-opt" onclick="setOpt('gameresize', 3, this)">1.5x</button>
+					<button type="button" class="btn-opt" onclick="setOpt('gameresize', 4, this)">2.0x</button>
+					<button type="button" class="btn-opt" onclick="setOpt('gameresize', 5, this)">2.5x</button>
+					<button type="button" class="btn-opt" onclick="setOpt('gameresize', 6, this)">3.0x</button>
+				</div>
+			</div>
+
+			<!-- Group 4: Engine Mode -->
+			<div class="option-group">
+				<div class="option-title">Engine Mode:</div>
+				<div id="listEngineMode" class="button-list">
+					<button type="button" class="btn-opt active" onclick="setOpt('enginemode', 0, this)">Compatibility Mode</button>
+					<button type="button" class="btn-opt" onclick="setOpt('enginemode', 1, this)">Standard Mode</button>
+					<button type="button" class="btn-opt" onclick="setOpt('enginemode', 2, this)">Preview Mode</button>
+				</div>
+			</div>
+
+			<!-- Group 5: Local JARs List -->
+			<div class="option-group">
+				<div class="option-title">Local Installed JARs:</div>
+				<div id="listLocalJars" class="button-list">
+					<button type="button" class="btn-opt active">No Project</button>
+				</div>
+			</div>
+
+			<!-- Area Tombol Aksi -->
+			<div class="action-buttons">
+				<button class="btn-act" onclick="openLocalJar()">Select JAR</button>
+				<button class="btn-act btn-add" onclick="openAddGameModal()">➕ Add Game</button>
+				<button class="btn-act btn-run" onclick="loadLocalJar()">Run JAR</button>
+				<button class="btn-act btn-del" onclick="deleteLocalJar()">Delete JAR</button>
+			</div>
+
+			<!-- HTML SELECT ASLI (DILINDUNGI & DI-HIDDEN) -->
+			<select id="canvasSize" class="hidden-select" onchange="canvasSizeHandleChange()">
+				<option value="size-240x320">Display Size: 240x320</option>
+				<option value="size-320x240">Display Size: 320x240</option>
+				<option value="size-128x128">Display Size: 128x128</option>
+				<option value="size-176x220">Display Size: 176x220</option>
+				<option value="size-240x400">Display Size: 240x400</option>
+				<option value="size-400x240">Display Size: 400x240</option>
+				<option value="size-360x640">Display Size: 360x640</option>
+				<option value="size-640x360">Display Size: 640x360</option>
+				<option value="size-480x800">Display Size: 480x800</option>
+				<option value="size-800x480">Display Size: 800x480</option>
+				<option value="size-no" selected>Display Size: Unlimited</option>
+			</select>
+
+			<select id="gamepadSize" class="hidden-select" onchange="gamepadSizeHandleChange()">
+				<option value="gamepad-0" selected>Virtual Keypad - None</option>
+				<option value="gamepad-1">Virtual Keypad - Small</option>
+				<option value="gamepad-2">Virtual Keypad - Medium</option>
+				<option value="gamepad-3">Virtual Keypad - Large</option>
+				<option value="gamepad-4">Virtual Keypad - Extra Large</option>
+			</select>
+
+			<select id="gameresize" class="hidden-select" onchange="gameresizeHandleChange()">
+				<option value="resize-1" selected>No Scaling</option> 
+				<option value="resize-0x5">Scale 0.5x</option>
+				<option value="resize-0x75">Scale 0.75x</option>
+				<option value="resize-1x5">Scale 1.5x</option>
+				<option value="resize-2">Scale 2x</option>
+				<option value="resize-2x5">Scale 2.5x</option>
+				<option value="resize-3">Scale 3x</option>
+			</select>
 			
-		</div>
-
-		<!-- <label><input id="mycheck2" name="enablexy" type="checkbox" value="" />自适应缩放</label>  -->
-		<div style="margin-top: 100px; clear: both;">
-
-			<select id="canvasSize" class="filter-box" onchange="canvasSizeHandleChange()">
-				<option value="size-240x320">显示尺寸: 240x320</option>
-				<option value="size-320x240">显示尺寸: 320x240</option>
-				<option value="size-128x128">显示尺寸: 128x128</option>
-				<option value="size-176x220">显示尺寸: 176x220</option>
-				
-				<option value="size-240x400">显示尺寸: 240x400</option>
-				<option value="size-400x240">显示尺寸: 400x240</option>
-				<option value="size-360x640">显示尺寸: 360x640</option>
-				<option value="size-640x360">显示尺寸: 640x360</option>
-				<option value="size-480x800">显示尺寸: 480x800</option>
-				<option value="size-800x480">显示尺寸: 800x480</option>
-				<option value="size-no" selected>显示尺寸: 无限制</option>
-			</select>
-			<select id="gamepadSize" class="filter-box" onchange="gamepadSizeHandleChange()">
-				<option value="gamepad-0" selected>虚拟键盘-无</option>
-				<option value="gamepad-1">虚拟键盘-小</option>
-				<option value="gamepad-2">虚拟键盘-中</option>
-				<option value="gamepad-3">虚拟键盘-大</option>
-				<option value="gamepad-4">虚拟键盘-特大</option>
-			</select>
-
-			<select id="gameresize" class="filter-box" onchange="gameresizeHandleChange()">
-				<option value="resize-1" selected>无缩放</option> 
-				<option value="resize-0x5">缩放0.5倍</option>
-				<option value="resize-0x75">缩放0.75倍</option>
-				<option value="resize-1x5">缩放1.5倍</option>
-				<option value="resize-2">缩放2倍</option>
-				<option value="resize-2x5">缩放2.5倍</option>
-				<option value="resize-3">缩放3倍</option>
-			</select>
-			
-			<select id="enginemode" class="filter-box" onchange="enginemodeOnclick()">
-				<option value="enginemode1-classesold.jar" selected>内核1-兼容模式</option> 
-				<option value="enginemode2-classes2.jar">内核2-标准模式</option>
-				<option value="enginemode3-classes.jar">内核3-预览模式</option> 
+			<select id="enginemode" class="hidden-select" onchange="enginemodeOnclick()">
+				<option value="enginemode1-classesold.jar" selected>Engine 1 - Compatibility Mode</option> 
+				<option value="enginemode2-classes2.jar">Engine 2 - Standard Mode</option>
+				<option value="enginemode3-classes.jar">Engine 3 - Preview Mode</option> 
 			</select> 
-			</br>
-			</br>
-			<select id="localjars" class="filter-box" onchange="localjarsHandleChange()">
-				<option value="" selected>无项目</option>
+
+			<select id="localjars" class="hidden-select" onchange="localjarsHandleChange()">
+				<option value="" selected>No Project</option>
 			</select>
-			<button class="btn" onclick="openLocalJar()">
-				选择本地jar
-			</button>
 
-			<button class="btn" onclick="loadLocalJar()">
-				运行本地jar
-			</button>
-
-			<button class="btn" onclick="deleteLocalJar()">
-				删除本地jar
-			</button>
-
-			</br>
-			</br>
-			</br>
-			</br>
-			<a href="indexbatch.html" style="float: right;">
-				批量安装版本
-			</a>
-			</br>
-			</br>
-			<a href="updatelog.html" style="float: right;">
-				更新日志
-			</a>
-			</br>
+			<br><br>
+			<a href="indexbatch.html" style="float: right; font-size: 12px;">Batch Installation Version</a>
+			<br>
+			<a href="updatelog.html" style="float: right; font-size: 12px;">Changelog</a>
+			<br>
 		</div>
+
+		<!-- ===== ADD GAME MODAL ===== -->
+		<div class="modal-overlay" id="addGameModal">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h3>➕ Add Game from Storage</h3>
+					<button class="close-btn" onclick="closeAddGameModal()">&times;</button>
+				</div>
+				<div class="modal-body">
+					<div class="modal-path">
+						<span>Path:</span> <div id="modal-current-path" style="word-break:break-all;color:#888;">/storage/emulated/0/HTMLTools/</div>
+					</div>
+					<div class="modal-file-list" id="modal-file-list"></div>
+				</div>
+				<div class="modal-footer">
+					<button class="btn-modal-secondary" onclick="modalGoUp()">📁 Up</button>
+					<button class="btn-modal-success" id="modal-add-game" disabled onclick="modalAddGame()" style="background:#28a745;color:white;font-weight:bold;">✅ Add Game</button>
+					<button class="btn-modal-danger" onclick="closeAddGameModal()">Cancel</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Toast -->
+		<div id="toast-msg"></div>
+
 		<script type="text/javascript" src="gamelist.js"></script>
 		<script type="text/javascript" src="index.js"></script>
-		
-		<script>
-			var _hmt = _hmt || [];
-			(function() {
-				var hm = document.createElement("script");
-				hm.src = "http://hm.baidu.com/hm.js?9940f26304b1f1a1a415df829cd440f3";
-				var s = document.getElementsByTagName("script")[0];
-				s.parentNode.insertBefore(hm, s);
-			})();
-		</script>
 	</body>
 </html>

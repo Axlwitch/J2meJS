@@ -8,73 +8,1033 @@
   <link rel="stylesheet" type="text/css" href="style/progress_activity.css">
   <link rel="stylesheet" type="text/css" href="style/headers.css">
   <link rel="stylesheet" type="text/css" href="style/drawer.css">
-
-  <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1">
- 
-
-  <!-- Required for non-UTF encodings --> 
-  <script src="libs/encoding.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   
-   <!-- Required for mid -->
-	<script src="./libs/webaudio-tinysynth.min.js" type="text/javascript"></script> 
+  <style>
+    * { box-sizing: border-box !important; user-select: none !important; -webkit-user-select: none !important; }
+    html, body { margin: 0 !important; padding: 0 !important; width: 100% !important; height: 100% !important; overflow: hidden !important; background: #010308 !important; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important; }
+    
+    #display-container { 
+      position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; 
+      width: 100vw !important; height: 100vh !important; background: radial-gradient(circle at center, #0c1527 0%, #010308 100%) !important; 
+      display: flex !important; justify-content: center !important; align-items: center !important; padding: 6px !important; z-index: 9999 !important; 
+    }
+    
+    #display { 
+      position: relative !important; 
+      width: 100% !important; 
+      max-width: 460px !important; 
+      height: 100% !important; 
+      max-height: 98vh !important; 
+      background: linear-gradient(135deg, 
+        #1c283c 0%, 
+        #0b1220 25%, 
+        #182338 45%, 
+        #080e1a 70%, 
+        #03060c 100%) !important; 
+      border-radius: 28px !important; 
+      padding: 14px 14px 10px 14px !important; 
+      box-shadow: 
+        0 20px 50px rgba(0,0,0,0.95), 
+        inset 0 1px 2px rgba(255, 255, 255, 0.4), 
+        inset 0 -2px 4px rgba(0, 0, 0, 0.8) !important; 
+      border: 2px solid #2a3b58 !important; 
+      display: flex !important; 
+      flex-direction: column !important; 
+      overflow: hidden !important; 
+    }
 
-  <!-- Required for amr -->
-	<script src="./libs/BenzAMRRecorder.min.js" type="text/javascript"></script> 
- 
-  <!-- Load config scripts separately because compiled-method-cache.js
-     - depends on them. -->
+    #drawer { display: flex !important; flex-direction: column !important; width: 100% !important; flex: 1 !important; padding: 0 !important; background: transparent !important; min-height: 0 !important; }
+    #drawer > header { display: none !important; }
+    
+    #main { 
+      flex: 1 !important; 
+      display: flex !important; 
+      align-items: center !important; 
+      justify-content: center !important; 
+      background: #000000 !important; 
+      border-radius: 12px !important; 
+      padding: 3px !important; 
+      min-height: 0 !important; 
+      width: 100% !important; 
+      overflow: hidden !important; 
+      position: relative !important; 
+      border: 2px solid #e6c200 !important;
+      box-shadow: 
+        inset 0 0 0 2px #00e5ff, 
+        0 0 20px rgba(0, 229, 255, 0.5), 
+        inset 0 0 15px rgba(0, 229, 255, 0.3) !important; 
+    }
+
+    #main::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.03) 42%, transparent 42.1%) !important;
+      pointer-events: none !important;
+      z-index: 10 !important;
+    }
+    
+    #canvas { 
+      display: block !important; 
+      background: #000 !important; 
+      border-radius: 8px !important; 
+      image-rendering: pixelated !important; 
+      width: 100% !important; 
+      height: 100% !important; 
+      object-fit: contain !important; 
+      touch-action: none !important; 
+    }
+
+    #gamepad { 
+      width: 100% !important; 
+      margin-top: 10px !important; 
+      padding: 8px 6px 6px 6px !important; 
+      display: flex !important; 
+      flex-direction: column !important; 
+      align-items: center !important; 
+      gap: 10px !important; 
+      flex-shrink: 0 !important; 
+      position: relative !important;
+    }
+
+    .panel-accent-top {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 6px;
+      margin-bottom: -2px;
+    }
+
+    .brand-logo {
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 1.8px;
+      color: #5c88b0;
+      text-transform: uppercase;
+      font-family: monospace, sans-serif;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    }
+
+    .status-leds { display: flex; gap: 6px; }
+    .status-led { width: 6px; height: 6px; border-radius: 50%; background: #00e5ff; box-shadow: 0 0 10px #00e5ff, 0 0 4px #ffffff; }
+    .status-led.magenta { background: #ff0055; box-shadow: 0 0 10px #ff0055, 0 0 4px #ffffff; }
+
+    .control-top-grid {
+      display: grid !important;
+      grid-template-columns: 1fr 140px 1fr !important;
+      gap: 6px !important;
+      width: 100% !important;
+      align-items: center !important;
+    }
+
+    .function-column {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 8px !important;
+    }
+
+    #gamepad button { 
+      outline: none !important; 
+      color: #ffffff !important; 
+      background: linear-gradient(180deg, #2a3d5c 0%, #121c2d 50%, #0a111d 100%) !important; 
+      font-weight: 800 !important; 
+      cursor: pointer !important; 
+      display: flex !important; 
+      align-items: center !important; 
+      justify-content: center !important; 
+      padding: 0 !important; 
+      transition: transform 0.06s ease, box-shadow 0.06s ease, background 0.06s ease !important; 
+      touch-action: manipulation !important; 
+      position: relative !important;
+      overflow: visible !important;
+      will-change: transform, box-shadow;
+    }
+
+    #gamepad button:active, #gamepad button.active-key { 
+      transform: translateY(4px) !important; 
+      box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.95), 
+        inset 0 3px 6px rgba(0, 0, 0, 0.95) !important; 
+      background: #03060c !important;
+      border-color: rgba(255, 255, 255, 0.08) !important;
+      color: #446688 !important;
+      text-shadow: none !important;
+      animation: none !important;
+    }
+
+    .btn-pink {
+      height: 34px !important;
+      border-radius: 12px !important;
+      border: 1px solid #ff3388 !important;
+      color: #ffffff !important;
+      font-size: 14px !important;
+      box-shadow: 
+        0 5px 15px rgba(255, 0, 85, 0.65), 
+        0 2px 4px rgba(0, 0, 0, 0.8), 
+        inset 0 2px 2px rgba(255, 255, 255, 0.7), 
+        inset 0 -3px 6px rgba(255, 0, 85, 0.6) !important;
+      text-shadow: 0 0 8px #ff0055, 0 0 3px #ffffff !important;
+    }
+
+    .btn-func {
+      height: 32px !important;
+      border-radius: 10px !important;
+      border: 1px solid #00e5ff !important;
+      color: #ffffff !important;
+      font-size: 13px !important;
+      box-shadow: 
+        0 5px 14px rgba(0, 229, 255, 0.55), 
+        0 2px 4px rgba(0, 0, 0, 0.8), 
+        inset 0 2px 2px rgba(255, 255, 255, 0.7), 
+        inset 0 -3px 6px rgba(0, 229, 255, 0.5) !important;
+      text-shadow: 0 0 8px #00e5ff, 0 0 3px #ffffff !important;
+    }
+
+    .save-indicator-dot {
+      position: absolute !important;
+      top: -3px !important;
+      right: -3px !important;
+      width: 10px !important;
+      height: 10px !important;
+      border-radius: 50% !important;
+      border: 1.5px solid #000000 !important;
+      z-index: 100 !important;
+      pointer-events: none !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .btn-func.btn-save-active {
+      border: 1px solid #00ff88 !important;
+      color: #00ff88 !important;
+      box-shadow: 
+        0 0 18px rgba(0, 255, 136, 0.8), 
+        0 2px 4px rgba(0, 0, 0, 0.8), 
+        inset 0 2px 2px rgba(255, 255, 255, 0.8), 
+        inset 0 -3px 6px rgba(0, 255, 136, 0.6) !important;
+      text-shadow: 0 0 10px #00ff88, 0 0 4px #ffffff !important;
+    }
+
+    .btn-func.btn-save-active .save-indicator-dot {
+      background-color: #00ff88 !important;
+      box-shadow: 0 0 8px #00ff88, 0 0 12px #00ff88 !important;
+    }
+
+    .btn-func.btn-save-inactive {
+      border: 1px solid #ff4444 !important;
+      color: #ff4444 !important;
+      box-shadow: 
+        0 0 10px rgba(255, 68, 68, 0.4), 
+        0 2px 4px rgba(0, 0, 0, 0.8), 
+        inset 0 1px 2px rgba(255, 255, 255, 0.2) !important;
+      text-shadow: none !important;
+      opacity: 0.7 !important;
+    }
+
+    .btn-func.btn-save-inactive .save-indicator-dot {
+      background-color: #ff4444 !important;
+      box-shadow: 0 0 6px #ff4444 !important;
+    }
+
+    #gamepad .dpad-container { 
+      position: relative !important;
+      width: 140px !important;
+      height: 112px !important;
+      display: grid !important; 
+      grid-template-columns: repeat(3, 43px) !important; 
+      grid-template-rows: repeat(3, 33px) !important; 
+      gap: 3px !important; 
+      justify-content: center !important; 
+      align-content: center !important;
+      background: linear-gradient(145deg, #162438 0%, #050912 100%) !important; 
+      padding: 4px !important; 
+      border-radius: 50% !important; 
+      border: 1px solid #00e5ff !important; 
+      box-shadow: 
+        0 6px 18px rgba(0,0,0,0.9), 
+        0 0 16px rgba(0, 229, 255, 0.45), 
+        inset 0 1px 2px rgba(255, 255, 255, 0.3) !important;
+    }
+
+    #gamepad .dpad-container button { 
+      width: 100% !important; 
+      height: 100% !important; 
+      font-size: 14px !important; 
+      border-radius: 8px !important; 
+      border: 1px solid #00e5ff !important;
+      color: #ffffff !important;
+      box-shadow: 
+        0 3px 10px rgba(0, 229, 255, 0.5), 
+        inset 0 2px 2px rgba(255, 255, 255, 0.6) !important;
+      text-shadow: 0 0 8px #00e5ff !important;
+    }
+
+    #gamepad .dpad-container .btn-ok { 
+      background: radial-gradient(circle at 35% 35%, #00f0ff 0%, #0055cc 60%, #002266 100%) !important; 
+      color: #ffffff !important; 
+      font-size: 10px !important; 
+      font-weight: 900 !important; 
+      border-radius: 50% !important; 
+      border: 1.5px solid #ffffff !important;
+      box-shadow: 
+        0 0 18px rgba(0, 229, 255, 0.9), 
+        0 4px 8px rgba(0, 0, 0, 0.8), 
+        inset 0 3px 4px rgba(255, 255, 255, 0.95) !important; 
+      text-shadow: 0 0 4px #000000 !important;
+    }
+
+    #gamepad .numpad { 
+      display: grid !important; 
+      grid-template-columns: repeat(3, 1fr) !important; 
+      gap: 7px !important; 
+      width: 100% !important; 
+    }
+
+    #gamepad .numpad button { 
+      height: 36px !important; 
+      font-size: 15px !important; 
+      border-radius: 9px !important; 
+      color: #ffffff !important; 
+      border: 1px solid #00e5ff !important;
+      box-shadow: 
+        0 4px 12px rgba(0, 229, 255, 0.5), 
+        0 2px 3px rgba(0, 0, 0, 0.8), 
+        inset 0 2px 2px rgba(255, 255, 255, 0.6), 
+        inset 0 -3px 6px rgba(0, 229, 255, 0.4) !important;
+      text-shadow: 0 0 8px #00e5ff, 0 0 2px #ffffff !important;
+    }
+
+    #gamepad .numpad .btn-gold { 
+      color: #ffffff !important; 
+      border: 1px solid #ffcc00 !important; 
+      box-shadow: 
+        0 4px 12px rgba(255, 204, 0, 0.6), 
+        0 2px 3px rgba(0, 0, 0, 0.8), 
+        inset 0 2px 2px rgba(255, 255, 255, 0.7), 
+        inset 0 -3px 6px rgba(255, 204, 0, 0.45) !important;
+      text-shadow: 0 0 8px #ffcc00, 0 0 2px #ffffff !important;
+    }
+
+    @keyframes victoryGlow {
+      0% { box-shadow: 0 0 25px #00e5ff, inset 0 0 12px #ffffff !important; border-color: #ffffff !important; }
+      50% { box-shadow: 0 0 30px #ff0055, inset 0 0 12px #ffffff !important; border-color: #ff88aa !important; }
+      100% { box-shadow: 0 0 25px #ffcc00, inset 0 0 12px #ffffff !important; border-color: #ffee88 !important; }
+    }
+
+    #gamepad.victory-mode button {
+      animation: victoryGlow 0.35s infinite ease-in-out alternate !important;
+    }
+
+    #sidebar, #back-button, .screen, #settings, #pageContainer, #consoleContainer, #password-editor, #tel-editor, #number-editor, #email-editor, #url-editor, #textarea-editor, #hidden-textarea-editor, .text-editor { display: none !important; }
+    form[role="dialog"][data-type="confirm"] { z-index: 99999 !important; }
+
+    #exit-btn {
+      position: fixed !important;
+      bottom: 12px !important;
+      left: 12px !important;
+      z-index: 99998 !important;
+      background: rgba(255, 0, 85, 0.25) !important;
+      border: 1px solid #ff0055 !important;
+      color: #ffffff !important;
+      border-radius: 50% !important;
+      width: 42px !important;
+      height: 42px !important;
+      font-size: 18px !important;
+      cursor: pointer !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      box-shadow: 0 0 15px rgba(255, 0, 85, 0.6) !important;
+      transition: all 0.2s ease !important;
+      backdrop-filter: blur(6px) !important;
+      text-shadow: 0 0 6px #ff0055 !important;
+    }
+    #exit-btn:active { transform: scale(0.9) !important; }
+
+    ::-webkit-scrollbar { width: 0px !important; }
+
+    #memory-editor {
+      display: none !important;
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      background: rgba(6, 10, 20, 0.96) !important;
+      z-index: 99999 !important;
+      color: #fff !important;
+      padding: 6px 8px !important;
+      border-radius: 8px !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
+      border: 2px solid rgba(0, 229, 255, 0.3) !important;
+      box-shadow: inset 0 0 30px rgba(0, 229, 255, 0.05) !important;
+    }
+
+    #memory-editor.active {
+      display: block !important;
+    }
+
+    .me-header {
+      display: block !important;
+      border-bottom: 2px solid rgba(0,229,255,0.2) !important;
+      padding-bottom: 3px !important;
+      margin-bottom: 4px !important;
+      height: 22px !important;
+      overflow: hidden !important;
+      background: rgba(0, 229, 255, 0.03) !important;
+      border-radius: 4px 4px 0 0 !important;
+    }
+
+    .me-header h2 {
+      margin: 0 !important;
+      font-size: 10px !important;
+      color: #00e5ff !important;
+      text-shadow: 0 0 10px rgba(0, 229, 255, 0.4) !important;
+      font-weight: 900 !important;
+      float: left !important;
+      line-height: 22px !important;
+      letter-spacing: 1px !important;
+      padding-left: 4px !important;
+    }
+
+    .me-toggle {
+      background: rgba(255, 68, 68, 0.15) !important;
+      border: 1px solid #ff4444 !important;
+      color: #ff4444 !important;
+      font-size: 12px !important;
+      cursor: pointer !important;
+      padding: 0 8px !important;
+      font-weight: 900 !important;
+      float: right !important;
+      line-height: 18px !important;
+      border-radius: 4px !important;
+      height: 20px !important;
+      margin-top: 1px !important;
+    }
+
+    .me-toggle:active {
+      background: rgba(255, 68, 68, 0.3) !important;
+      transform: scale(0.95) !important;
+    }
+
+    .me-canvas-wrap {
+      display: block !important;
+      width: 100% !important;
+      height: 52% !important;
+      min-height: 50px !important;
+      background: #03060c !important;
+      border: 2px solid #0d1a2a !important;
+      border-radius: 4px !important;
+      padding: 2px !important;
+      margin-bottom: 3px !important;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8) !important;
+      position: relative !important;
+    }
+
+    #me-canvas {
+      display: block !important;
+      width: 100% !important;
+      height: 100% !important;
+      image-rendering: pixelated !important;
+      border-radius: 2px !important;
+      background: #03060c !important;
+    }
+
+    .me-controls {
+      display: block !important;
+      width: 100% !important;
+      height: 72px !important;
+      overflow: hidden !important;
+      background: rgba(0, 229, 255, 0.02) !important;
+      border: 1px solid rgba(0, 229, 255, 0.08) !important;
+      border-radius: 4px !important;
+      padding: 3px 4px !important;
+    }
+
+    .me-row {
+      display: block !important;
+      width: 100% !important;
+      height: 22px !important;
+      margin-bottom: 1px !important;
+      overflow: hidden !important;
+      white-space: nowrap !important;
+    }
+
+    .me-row:last-child {
+      margin-bottom: 0 !important;
+    }
+
+    .me-row input {
+      display: inline-block !important;
+      vertical-align: middle !important;
+      background: #050a12 !important;
+      border: 1px solid #1a2a3d !important;
+      color: #00ff88 !important;
+      padding: 1px 4px !important;
+      border-radius: 3px !important;
+      font-size: 9px !important;
+      height: 20px !important;
+      outline: none !important;
+      box-sizing: border-box !important;
+      font-family: 'Courier New', monospace !important;
+      letter-spacing: 0.5px !important;
+    }
+
+    .me-row input:focus {
+      border-color: #00e5ff !important;
+      box-shadow: 0 0 10px rgba(0, 229, 255, 0.15), inset 0 0 10px rgba(0, 229, 255, 0.05) !important;
+      background: #080f1a !important;
+    }
+
+    .me-row input::placeholder {
+      color: #334455 !important;
+      font-size: 7px !important;
+      letter-spacing: 0px !important;
+    }
+
+    .me-row button {
+      display: inline-block !important;
+      vertical-align: middle !important;
+      background: linear-gradient(180deg, #1a2a3d 0%, #0d1a2a 100%) !important;
+      border: 1px solid #2a3d5c !important;
+      color: #fff !important;
+      padding: 1px 5px !important;
+      border-radius: 3px !important;
+      font-size: 8px !important;
+      cursor: pointer !important;
+      white-space: nowrap !important;
+      font-weight: 700 !important;
+      height: 20px !important;
+      box-sizing: border-box !important;
+      line-height: 18px !important;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8) !important;
+      transition: all 0.08s ease !important;
+      font-family: 'Courier New', monospace !important;
+    }
+
+    .me-row button:active {
+      transform: scale(0.92) !important;
+      background: #03060c !important;
+      border-color: #00e5ff !important;
+    }
+
+    .me-row button:disabled {
+      opacity: 0.3 !important;
+      cursor: not-allowed !important;
+      transform: none !important;
+    }
+
+    .btn-primary { border-color: #00e5ff !important; color: #00e5ff !important; box-shadow: 0 0 8px rgba(0, 229, 255, 0.15) !important; }
+    .btn-warning { border-color: #ffcc00 !important; color: #ffcc00 !important; box-shadow: 0 0 8px rgba(255, 204, 0, 0.15) !important; }
+    .btn-danger { border-color: #ff4444 !important; color: #ff4444 !important; box-shadow: 0 0 8px rgba(255, 68, 68, 0.15) !important; }
+    .btn-inject { border-color: #ff0055 !important; color: #ff0055 !important; box-shadow: 0 0 8px rgba(255, 0, 85, 0.15) !important; }
+
+    .me-row-scan input { width: 30% !important; }
+    .me-row-scan button { width: 18% !important; }
+
+    .me-row-inject input { width: 22% !important; }
+    .me-row-inject button { width: 14% !important; }
+
+    .me-row-freeze label {
+      display: inline-block !important;
+      vertical-align: middle !important;
+      font-size: 8px !important;
+      color: #88bbdd !important;
+      cursor: pointer !important;
+      width: 16% !important;
+      font-family: 'Courier New', monospace !important;
+    }
+
+    .me-row-freeze label input[type="checkbox"] {
+      width: 12px !important;
+      height: 12px !important;
+      accent-color: #ff0055 !important;
+      margin: 0 !important;
+      vertical-align: middle !important;
+    }
+
+    #me-freeze-count {
+      display: inline-block !important;
+      vertical-align: middle !important;
+      font-size: 8px !important;
+      color: #666 !important;
+      min-width: 16px !important;
+      font-family: 'Courier New', monospace !important;
+    }
+
+    .me-row-freeze button { width: 18% !important; }
+
+    .me-status {
+      display: block !important;
+      width: 100% !important;
+      font-size: 8px !important;
+      margin-top: 2px !important;
+      text-align: center !important;
+      color: #666 !important;
+      height: 16px !important;
+      overflow: hidden !important;
+      line-height: 16px !important;
+      background: rgba(0, 0, 0, 0.3) !important;
+      border-radius: 3px !important;
+      border: 1px solid rgba(0, 229, 255, 0.05) !important;
+      font-family: 'Courier New', monospace !important;
+      letter-spacing: 0.5px !important;
+    }
+  </style>
+
+  <script src="./libs/webaudio-tinysynth.min.js" type="text/javascript"></script> 
+  <script src="./libs/BenzAMRRecorder.min.js" type="text/javascript"></script> 
+  <script src="libs/encoding.js"></script>
   <script type="text/javascript" src="config/default.js" defer></script>
   <script type="text/javascript" src="config/runtests.js" defer></script>
   <script type="text/javascript" src="config/build.js" defer></script>
   <script type="text/javascript" src="config/urlparams.js" defer></script>
-
-
-  <!--<script type="text/javascript" src="libs/terminal.js" defer></script>-->
-
-  <!-- Load promise-6.0.0.js and IndexedDB-getAll-shim.js separately
-     - because compiled-method-cache.js depends on them. -->
   <script type="text/javascript" src="libs/promise-6.0.0.js" defer></script>
   <script type="text/javascript" src="polyfill/IndexedDB-getAll-shim.js" defer></script>
-
-  <!-- Load compiled-method-cache.js separately because j2me.js depends on it. -->
   <script type="text/javascript" src="libs/compiled-method-cache.js" defer></script>
-
-  <!-- Load bld/native.js separately because adding it to main-all.js
-     - throws an "asm.js type error". -->
   <script type="text/javascript" src="bld/native.js" defer></script>
-
-  <!-- Load j2me.js separately because classes.jar.js depends on it (it adds
-     - members to the AOTMD hash that j2me.js defines); and also so its source
-     - map gets loaded by the debugger. -->
   <script type="text/javascript" src="bld/j2me.js" defer></script>
-
-  <!-- Run `make aot` to generate these.  Load them separately, because adding
-     - classes.jar.js to main-all.js fails silently for unknown reasons. -->
-  <!--<script type="text/javascript" src="bld/classes.jar.js" defer></script>-->
-  <!--<script type="text/javascript" src="bld/program.jar.js" defer></script>-->
-  <!--<script type="text/javascript" src="bld/tests.jar.js" defer></script>-->
-
-  <!-- Load the rest of the scripts from the combined script main-all.js
-     - to improve startup and runtime performance.  See Makefile for the list
-     - of files that get combined into this one. -->
   <script type="text/javascript" src="bld/main-all.js" defer></script>
-  
-  <script type="text/javascript" src="keymap.js"></script>
-  
-</head>
+
+<script>
+    (function() {
+      if (window.__textHookInjected) {
+        if (window.__translator && typeof window.__translator.reload === 'function') window.__translator.reload();
+        return;
+      }
+      window.__textHookInjected = true;
+      
+      function injectArialBoldFont() {
+        if (document.getElementById('__arial_bold_font')) return;
+        
+        var style = document.createElement('style');
+        style.id = '__arial_bold_font';
+        style.textContent = `
+          * {
+            font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif !important;
+            font-weight: 700 !important;
+            -webkit-font-smoothing: antialiased !important;
+            -moz-osx-font-smoothing: grayscale !important;
+            text-rendering: optimizeLegibility !important;
+            font-smooth: always !important;
+          }
+          
+          body {
+            font-size: 13px !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.3px !important;
+            line-height: 1.6 !important;
+            text-shadow: 1px 1px 0 rgba(0,0,0,0.3) !important;
+          }
+          
+          #gamepad button {
+            font-family: Arial, sans-serif !important;
+            font-size: 12px !important;
+            font-weight: 800 !important;
+            letter-spacing: 0.3px !important;
+            text-shadow: 1px 1px 0 #000 !important;
+            word-spacing: 2px !important;
+          }
+          
+          #__toggle_btn {
+            font-family: Arial, sans-serif !important;
+            font-size: 11px !important;
+            font-weight: 800 !important;
+            letter-spacing: 0.3px !important;
+            text-shadow: 1px 1px 0 #000 !important;
+            word-spacing: 2px !important;
+          }
+          
+          .game-text {
+            font-family: Arial, sans-serif !important;
+            font-size: 13px !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.3px !important;
+            text-shadow: 1px 1px 0 #000 !important;
+            word-spacing: 2px !important;
+          }
+          
+          .translated-text {
+            font-family: Arial, sans-serif !important;
+            font-size: 13px !important;
+            font-weight: 700 !important;
+            color: #ffff00 !important;
+            letter-spacing: 0.3px !important;
+            text-shadow: 1px 1px 0 #000 !important;
+            word-spacing: 2px !important;
+          }
+          
+          canvas {
+            font-family: Arial, sans-serif !important;
+            font-weight: 700 !important;
+          }
+          
+          button, .button, [role="button"] {
+            font-weight: 800 !important;
+            text-shadow: 1px 1px 0 rgba(0,0,0,0.5) !important;
+            word-spacing: 2px !important;
+          }
+          
+          .text-light {
+            color: #ffffff !important;
+            text-shadow: 1px 1px 0 #000 !important;
+            word-spacing: 2px !important;
+          }
+          
+          .text-yellow {
+            color: #ffff00 !important;
+            text-shadow: 1px 1px 0 #000 !important;
+            word-spacing: 2px !important;
+          }
+        `;
+        (document.head || document.documentElement).appendChild(style);
+      }
+      
+      injectArialBoldFont();
+      
+      var pathBase = '';
+      var pathDump = '';
+      var pathTranslate = '';
+      
+      var kamusGame = {};
+      var autoSaveEnabled = true;
+      
+      var dumpPending = {};
+      var hasUnsavedDump = false;
+
+      var sedangDiterjemahkan = {};
+      var isOfflineMode = !navigator.onLine;
+
+      window.addEventListener('online', function() { isOfflineMode = false; });
+      window.addEventListener('offline', function() { isOfflineMode = true; });
+      
+      function initPaths() {
+        if (typeof Android !== 'undefined' && typeof Android.getBasePath === 'function') {
+          pathBase = Android.getBasePath();
+        } else {
+          pathBase = '/storage/emulated/0/HTMLTools';
+        }
+        pathDump = pathBase + '/dump.json';
+        pathTranslate = pathBase + '/translate.json';
+      }
+      
+      function muatSemuaKamus() {
+        initPaths();
+        kamusGame = {};
+        try {
+          if (typeof Android !== 'undefined' && typeof Android.fileExists === 'function') {
+            if (Android.fileExists(pathTranslate)) {
+              var isi = Android.readFile(pathTranslate);
+              if (isi && isi.trim() !== '') kamusGame = JSON.parse(isi);
+            }
+          }
+        } catch(e) {}
+      }
+      
+      function simpanKamusTranslate() {
+        try {
+          if (typeof Android !== 'undefined' && typeof Android.writeFile === 'function') {
+            Android.writeFile(pathTranslate, JSON.stringify(kamusGame, null, 2));
+          }
+        } catch(e) {}
+      }
+
+      function paksaSaveDump() {
+        if (!autoSaveEnabled || !hasUnsavedDump) return;
+        try {
+          if (typeof Android !== 'undefined' && typeof Android.writeFile === 'function') {
+            var existing = {};
+            if (typeof Android !== 'undefined' && typeof Android.fileExists === 'function' && Android.fileExists(pathDump)) {
+              var isi = Android.readFile(pathDump);
+              if (isi && isi.trim() !== '') {
+                try { existing = JSON.parse(isi); } catch(err) { existing = {}; }
+              }
+            }
+            
+            Object.assign(existing, dumpPending);
+            Android.writeFile(pathDump, JSON.stringify(existing, null, 2));
+            
+            dumpPending = {};
+            hasUnsavedDump = false;
+          }
+        } catch(e) {}
+      }
+      
+      function terjemahkanViaAPI(teks) {
+        if (isOfflineMode || sedangDiterjemahkan[teks]) return;
+        sedangDiterjemahkan[teks] = true;
+
+        var url = 'https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=id&dt=t&q=' + encodeURIComponent(teks);
+
+        fetch(url)
+          .then(function(res) {
+            if (!res.ok) throw new Error('Network error');
+            return res.json();
+          })
+          .then(function(data) {
+            if (data && data[0] && data[0][0] && data[0][0][0]) {
+              var hasilTranslate = data[0][0][0];
+              kamusGame[teks] = hasilTranslate;
+              simpanKamusTranslate();
+            }
+            delete sedangDiterjemahkan[teks];
+          })
+          .catch(function(err) {
+            isOfflineMode = true;
+            delete sedangDiterjemahkan[teks];
+          });
+      }
+
+      if (window.__dumpTimer) clearInterval(window.__dumpTimer);
+      window.__dumpTimer = setInterval(paksaSaveDump, 500);
+      
+      window.addEventListener('beforeunload', paksaSaveDump);
+      document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'hidden') paksaSaveDump();
+      });
+      
+      function prosesText(teks) {
+        if (!teks || typeof teks !== 'string') return teks;
+        var trimmed = teks.trim();
+        
+        if (trimmed === '' || trimmed.length <= 1 || /^\d+$/.test(trimmed)) return teks;
+        
+        if (kamusGame[trimmed] !== undefined) {
+          if (dumpPending[trimmed]) delete dumpPending[trimmed];
+          return teks.replace(trimmed, kamusGame[trimmed]);
+        }
+        
+        for (var k in kamusGame) {
+          if (kamusGame[k] === trimmed) return teks;
+        }
+        
+        terjemahkanViaAPI(trimmed);
+
+        if (autoSaveEnabled) {
+          for (var key in dumpPending) {
+            if (trimmed.length > key.length && trimmed.indexOf(key) !== -1) {
+              delete dumpPending[key];
+            }
+          }
+          
+          var isSubText = false;
+          for (var key in dumpPending) {
+            if (key.length >= trimmed.length && key.indexOf(trimmed) !== -1) {
+              isSubText = true;
+              break;
+            }
+          }
+          
+          if (!isSubText) {
+            dumpPending[trimmed] = trimmed;
+            hasUnsavedDump = true;
+          }
+        }
+        
+        return teks;
+      }
+      
+      if (typeof CanvasRenderingContext2D !== 'undefined') {
+        var origFill = CanvasRenderingContext2D.prototype.fillText;
+        CanvasRenderingContext2D.prototype.fillText = function(t, x, y, m) {
+          var teksAsli = String(t);
+          var tb = prosesText(teksAsli);
+          var rx = Math.round(x);
+          var ry = Math.round(y);
+          
+          // Simpan state asli
+          this.save();
+          
+          // Dapatkan ukuran font dari properti yang ada
+          var currentSize = this.font.match(/([0-9]+)px/);
+          var fontSize = currentSize ? currentSize[1] : '13';
+          
+          // Set font normal untuk pengukuran
+          this.font = fontSize + 'px Arial, sans-serif';
+          
+          // Jika teks diterjemahkan, skalakan agar muat
+          if (tb !== teksAsli) {
+            var widthAsli = this.measureText(teksAsli).width;
+            var widthBaru = this.measureText(tb).width;
+            
+            if (widthBaru > widthAsli && widthBaru > 0) {
+              var scaleX = widthAsli / widthBaru;
+              
+              this.translate(rx, ry);
+              this.scale(scaleX, 1);
+              
+              // Set font bold untuk render
+              this.font = 'bold ' + fontSize + 'px Arial, sans-serif';
+              
+              var res = m !== undefined ? origFill.call(this, tb, 0, 0, m) : origFill.call(this, tb, 0, 0);
+              this.restore();
+              return res;
+            }
+          }
+          
+          this.restore();
+          
+          // Set font bold untuk render normal
+          this.font = 'bold ' + fontSize + 'px Arial, sans-serif';
+          
+          return m !== undefined ? origFill.call(this, tb, rx, ry, m) : origFill.call(this, tb, rx, ry);
+        };
+      }
+      
+      if (typeof Native !== 'undefined' && typeof J2ME !== 'undefined') {
+        var sigDrawString = 'javax/microedition/lcdui/Graphics.drawString.(Ljava/lang/String;III)V';
+        if (typeof Native[sigDrawString] === 'function') {
+          var origDS = Native[sigDrawString];
+          Native[sigDrawString] = function(addr, strAddr, x, y, anchor) {
+            var str = J2ME.fromStringAddr(strAddr);
+            var teksBaru = prosesText(str);
+            return (teksBaru !== str) ? origDS.call(this, addr, J2ME.newString(teksBaru), x, y, anchor) : origDS.call(this, addr, strAddr, x, y, anchor);
+          };
+        }
+      }
+      
+      if (typeof window.drawString === 'function') {
+        var origWDS = window.drawString;
+        window.drawString = function(info, str, x, y, anchor) {
+          if (!str || typeof str !== 'string') return origWDS.call(this, info, str, x, y, anchor);
+          var teksBaru = prosesText(str);
+          if (teksBaru.indexOf('\n') !== -1) {
+            var fontSize = 14;
+            if (typeof NativeMap !== 'undefined' && info && info.currentFont) {
+              var fc = NativeMap.get(info.currentFont);
+              if (fc && fc.fontSize) fontSize = fc.fontSize;
+            }
+            var lh = fontSize * 1.6;  // Tambah line height dari 1.3 ke 1.6
+            var baris = teksBaru.split('\n');
+            for (var i = 0; i < baris.length; i++) {
+              origWDS.call(this, info, baris[i], Math.round(x), Math.round(y + (i * lh)), anchor);
+            }
+            return;
+          }
+          return origWDS.call(this, info, teksBaru, Math.round(x), Math.round(y), anchor);
+        };
+      }
+      
+      (function() {
+        if (document.getElementById('__toggle_btn')) return;
+        var btn = document.createElement('button');
+        btn.id = '__toggle_btn'; btn.textContent = '💾 ON';
+        btn.style.cssText = 'position:fixed!important;bottom:10px!important;right:60px!important;z-index:999999!important;background:rgba(0,0,0,0.9)!important;color:#00ff88!important;border:2px solid #00ff88!important;border-radius:6px!important;padding:5px 10px!important;font-size:11px!important;font-weight:800!important;cursor:pointer!important;font-family:Arial,sans-serif!important;pointer-events:auto!important;box-shadow:0 0 10px rgba(0,255,136,0.5)!important;letter-spacing:0.3px!important;text-shadow:1px 1px 0 #000!important;word-spacing:2px!important';
+        btn.onclick = function() { toggleSave(); };
+        (document.body || document.documentElement).appendChild(btn);
+      })();
+      
+      muatSemuaKamus();
+
+      window.toggleSave = function() {
+        autoSaveEnabled = !autoSaveEnabled;
+        
+        var btnFloat = document.getElementById('__toggle_btn');
+        if (btnFloat) {
+          btnFloat.textContent = autoSaveEnabled ? '💾 ON' : '💾 OFF';
+          btnFloat.style.setProperty('color', autoSaveEnabled ? '#00ff88' : '#ff4444', 'important');
+          btnFloat.style.setProperty('border-color', autoSaveEnabled ? '#00ff88' : '#ff4444', 'important');
+          btnFloat.style.setProperty('box-shadow', autoSaveEnabled ? '0 0 10px rgba(0,255,136,0.5)' : '0 0 10px rgba(255,68,68,0.5)', 'important');
+        }
+
+        var saveBtn = document.querySelector('button[data-key="clear"]');
+        if (saveBtn) {
+          if (autoSaveEnabled) {
+            saveBtn.classList.add('btn-save-active');
+            saveBtn.classList.remove('btn-save-inactive');
+          } else {
+            saveBtn.classList.add('btn-save-inactive');
+            saveBtn.classList.remove('btn-save-active');
+          }
+        }
+
+        if (autoSaveEnabled) {
+          paksaSaveDump();
+        }
+        return autoSaveEnabled;
+      };
+
+      window.__translator = {
+        reload: function() { muatSemuaKamus(); },
+        toggleSave: window.toggleSave,
+        injectFont: injectArialBoldFont
+      };
+    })();
+
+    function exitGame() {
+      try {
+        if (typeof myflushAll === 'function') {
+          myflushAll();
+        }
+      } catch (err) {}
+      window.location.href = 'index.html';
+    }
+
+    function triggerVictoryEffect(durationMs) {
+      var duration = durationMs || 3500;
+      var gamepad = document.getElementById('gamepad');
+      if (!gamepad) return;
+
+      gamepad.classList.add('victory-mode');
+      setTimeout(function() {
+        gamepad.classList.remove('victory-mode');
+      }, duration);
+    }
+
+    window.addEventListener('DOMContentLoaded', function() {
+      var canvas = document.getElementById('canvas');
+      if (canvas) {
+        canvas.setAttribute('tabindex', '0');
+        setTimeout(function() { canvas.focus(); }, 500);
+        var observer = new MutationObserver(function() {
+          canvas.style.setProperty('width', '100%', 'important');
+          canvas.style.setProperty('height', '100%', 'important');
+        });
+        observer.observe(canvas, { attributes: true, attributeFilter: ['width', 'height', 'style'] });
+      }
+      
+      var exitBtn = document.getElementById('exit-btn');
+      if (exitBtn) {
+        exitBtn.addEventListener('click', exitGame);
+      }
+
+      var buttons = document.querySelectorAll('#gamepad button');
+      buttons.forEach(function(btn) {
+        btn.addEventListener('touchstart', function() { btn.classList.add('active-key'); }, {passive: true});
+        btn.addEventListener('touchend', function() { btn.classList.remove('active-key'); }, {passive: true});
+        btn.addEventListener('touchcancel', function() { btn.classList.remove('active-key'); }, {passive: true});
+      });
+
+      var saveBtn = document.querySelector('button[data-key="clear"]');
+      if (saveBtn) {
+        var dot = document.createElement('span');
+        dot.className = 'save-indicator-dot';
+        dot.style.cssText = 'display:inline-block;width:8px;height:8px;margin-left:4px;border-radius:50%;background:#00ff00;box-shadow:0 0 6px #00ff00, 0 0 12px rgba(0,255,0,0.5)';
+        saveBtn.appendChild(dot);
+
+        saveBtn.classList.add('btn-save-active');
+        saveBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          if (typeof window.toggleSave === 'function') {
+            window.toggleSave();
+          }
+        });
+      }
+    });
+  </script>
 
 <body>
   <input id="File" type="file" style="visibility: hidden;display:none;"/> 
   <div id="display-container">
     <div id="display">
       <section id="sidebar" data-type="sidebar" style="display:none">
-        <header>
-          <h1>Menu</h1>
-        </header>
-        <nav>
-          <ul>
-          </ul>
-        </nav>
+        <header><h1>Menu</h1></header>
+        <nav><ul></ul></nav>
       </section>
       <section id="drawer" role="region">
         <header style="display:none">
@@ -83,50 +1043,108 @@
           <menu id="header-ok-button" type="toolbar" style="display:none"><button>√</button></menu>
           <h1 id="display_title"></h1>
         </header>
+        
         <div id="main" role="main">
           <canvas id="canvas"></canvas>
+
+          <div id="memory-editor">
+            <div class="me-header">
+              <h2>💉 MEMORY INJECTOR</h2>
+              <button class="me-toggle" id="me-close-btn">✕</button>
+            </div>
+
+            <div class="me-canvas-wrap">
+              <canvas id="me-canvas"></canvas>
+            </div>
+
+            <div class="me-controls">
+              <div class="me-row me-row-scan">
+                <input type="text" id="me-scan-value" placeholder="Nilai scan">
+                <button id="me-btn-first-scan" class="btn-primary">First</button>
+                <button id="me-btn-next-scan" class="btn-warning" disabled>Next</button>
+                <button id="me-btn-clear" class="btn-danger">Clear</button>
+              </div>
+
+              <div class="me-row me-row-inject">
+                <input type="text" id="me-inject-addr" placeholder="0x...">
+                <input type="text" id="me-inject-val" placeholder="Val">
+                <button id="me-btn-inject" class="btn-inject">Inject</button>
+                <button id="me-btn-inject-all" class="btn-inject">All</button>
+                <button id="me-btn-refresh" style="color:#64c8ff;border-color:rgba(100,200,255,0.3);">⟳</button>
+              </div>
+
+              <div class="me-row me-row-freeze">
+                <label>
+                  <input type="checkbox" id="me-freeze-toggle">
+                  Freeze
+                </label>
+                <span id="me-freeze-count">(0)</span>
+                <button id="me-btn-unfreeze-all" class="btn-danger">Unfreeze</button>
+              </div>
+            </div>
+
+            <div class="me-status" id="me-status">⏳ MENUNGGU J2ME...</div>
+          </div>
+
           <input id="password-editor" class="text-editor" type="password">
           <input id="tel-editor" class="text-editor" type="tel">
           <input id="number-editor" class="text-editor" type="number">
           <input id="email-editor" class="text-editor" type="email">
           <input id="url-editor" class="text-editor" type="url">
           <div id="textarea-editor" class="text-editor" contenteditable="true"></div>
-          <!-- The hidden textarea editor is used to measure the content height -->
           <div id="hidden-textarea-editor" class="text-editor"></div>
           <button id="back-button">Back</button>
         </div>
       </section>
 
-      <div id="gamepad" onselectstart ='return false' οnselect='document.selection.empty()'>
-        <div id="padcontent">
-          <button>1</button>
-          <button>2</button>
-          <button>3</button>
-          <button>L</button>
-          <div></div>
-          <button >R</button> 
+      <div id="gamepad" onselectstart='return false'>
+        <div class="panel-accent-top">
+          <span class="brand-logo">SONY ERICSSON</span>
+          <div class="status-leds">
+            <div class="status-led"></div>
+            <div class="status-led magenta"></div>
+          </div>
         </div>
-        <div id="padcontent">
-          <button>4</button>
-          <button>5</button>
-          <button>6</button>
-          <div></div>
-          <button >up</button>
+
+        <div class="control-top-grid">
+          <div class="function-column">
+            <button class="btn-pink" data-key="L">L</button>
+            <button class="btn-func" id="me-toggle-softkey" data-key="soft1">╭╮</button>
+            <button class="btn-func" data-key="back">↩</button>
+          </div>
+
+          <div class="dpad-container">
+            <div></div>
+            <button class="nav-up" data-key="up">↑</button>
+            <div></div>
+            <button class="nav-left" data-key="left">←</button>
+            <button class="btn-ok" data-key="ok" id="btn-ok-emulator">OK</button>
+            <button class="nav-right" data-key="right">→</button>
+            <div></div>
+            <button class="nav-down" data-key="down">↓</button>
+            <div></div>
+          </div>
+
+          <div class="function-column">
+            <button class="btn-pink" data-key="R">R</button>
+            <button class="btn-func" data-key="soft2" id="btn-back-emulator">↵</button>
+            <button class="btn-func" data-key="clear" title="Toggle Save">💾</button>
+          </div>
         </div>
-        <div id="padcontent">
-          <button>7</button>
-          <button>8</button>
-          <button>9</button>
-          <button>left</button>
-          <button >OK</button>
-          <button >right</button>
-        </div>
-        <div id="padcontent" >
-          <button>*</button>
-          <button>0</button>
-          <button>#</button>
-          <div></div>
-          <button>down</button>
+
+        <div class="numpad">
+          <button data-key="1" class="num-btn">1</button>
+          <button data-key="2" class="num-btn">2</button>
+          <button data-key="3" class="num-btn">3</button>
+          <button data-key="4" class="num-btn">4</button>
+          <button data-key="5" class="num-btn">5</button>
+          <button data-key="6" class="num-btn">6</button>
+          <button data-key="7" class="num-btn">7</button>
+          <button data-key="8" class="num-btn">8</button>
+          <button data-key="9" class="num-btn">9</button>
+          <button class="btn-gold" data-key="*">A*</button>
+          <button data-key="0" class="num-btn">0</button>
+          <button class="btn-gold" data-key="#">#</button>
         </div>
       </div>
 
@@ -144,15 +1162,10 @@
         </div>
       </div>
 
-      <div id="exit-screen" class="screen">
-      </div>
+      <div id="exit-screen" class="screen"></div>
+      <div id="background-screen"></div>
 
-      <div id="background-screen">
-      </div>
-
-      <form role="dialog" data-type="confirm"
-            class="lcdui-alert"
-            id="lcdui-alert" style="display: none">
+      <form role="dialog" data-type="confirm" class="lcdui-alert" id="lcdui-alert" style="display: none">
         <section>
           <h1 class="title"></h1>
           <p class="text"></p>
@@ -164,15 +1177,13 @@
         </menu>
       </form>
 
-      <form role="dialog" data-type="confirm"
-            class="sms-listener-prompt"
-            id="sms-listener-prompt" style="display: none">
+      <form role="dialog" data-type="confirm" class="sms-listener-prompt" id="sms-listener-prompt" style="display: none">
         <section>
           <h1>SMS Verification</h1>
           <p class="verificationText"></p>
-            <input type="text" placeholder="Type SMS Here">
-            <p class="timeLeft"></p>
-            <progress class="timeLeftBar" value="0" max="100"></progress>
+          <input type="text" placeholder="Type SMS Here">
+          <p class="timeLeft"></p>
+          <progress class="timeLeftBar" value="0" max="100"></progress>
         </section>
         <menu>
           <button class="cancel">Cancel</button>
@@ -180,12 +1191,10 @@
         </menu>
       </form>
 
-      <form role="dialog" data-type="confirm"
-            class="nokia-fileui-prompt"
-            id="nokia-fileui-prompt" style="display: none">
+      <form role="dialog" data-type="confirm" class="nokia-fileui-prompt" id="nokia-fileui-prompt" style="display: none">
         <section>
           <h1>Select a file</h1>
-          <p><input type="file" name="nokia-fileui-file">
+          <p><input type="file" name="nokia-fileui-file"></p>
         </section>
         <menu>
           <button class="cancel">Cancel</button>
@@ -193,19 +1202,793 @@
         </menu>
       </form>
 
-      <form role="dialog" data-type="confirm"
-            class="download-failure-dialog"
-            id="download-failure-dialog" style="display: none">
+      <form role="dialog" data-type="confirm" class="download-failure-dialog" id="download-failure-dialog" style="display: none">
         <section>
           <h1 class="download-dialog-text">Download failure</h1>
-          <p>The download of midlet failed.  Press <i>Retry</i> to try again.</p>
+          <p>The download of midlet failed. Press <i>Retry</i> to try again.</p>
         </section>
         <menu>
           <button class="recommend">Retry</button>
         </menu>
       </form>
     </div> 
- </div>
+  </div>
+
+  <button id="exit-btn" title="Menu">≡</button>
+
+  <script>
+  (function() {
+      'use strict';
+
+      const HEAP_START = 0x00001000;
+      const HEAP_END = 0x03FFFFFF;
+
+      let scanResults = [];
+      let isFirstScan = true;
+      let isScanning = false;
+      let frozenList = new Map();
+      let freezeIntervalId = null;
+      let isFreezeMode = false;
+      let currentFocus = 'scan';
+      let scrollOffset = 0;
+
+      const el = {
+          editor: document.getElementById('memory-editor'),
+          closeBtn: document.getElementById('me-close-btn'),
+          canvas: document.getElementById('me-canvas'),
+          scanValue: document.getElementById('me-scan-value'),
+          btnFirstScan: document.getElementById('me-btn-first-scan'),
+          btnNextScan: document.getElementById('me-btn-next-scan'),
+          btnClear: document.getElementById('me-btn-clear'),
+          btnInject: document.getElementById('me-btn-inject'),
+          btnInjectAll: document.getElementById('me-btn-inject-all'),
+          btnRefresh: document.getElementById('me-btn-refresh'),
+          injectAddr: document.getElementById('me-inject-addr'),
+          injectVal: document.getElementById('me-inject-val'),
+          status: document.getElementById('me-status'),
+          freezeToggle: document.getElementById('me-freeze-toggle'),
+          freezeCount: document.getElementById('me-freeze-count'),
+          btnUnfreezeAll: document.getElementById('me-btn-unfreeze-all'),
+          btnOk: document.getElementById('btn-ok-emulator'),
+          btnBack: document.getElementById('btn-back-emulator')
+      };
+
+      function toHex(addr) {
+          return '0x' + addr.toString(16).toUpperCase().padStart(8, '0');
+      }
+
+      function isValidAddress(addr) {
+          return addr >= HEAP_START && addr < HEAP_END && (addr & 3) === 0;
+      }
+
+      function readInt(addr) {
+          if (!isValidAddress(addr) || typeof i32 === 'undefined') return null;
+          try { return i32[addr >> 2]; } catch(e) { return null; }
+      }
+
+      function writeInt(addr, value) {
+          if (!isValidAddress(addr) || typeof i32 === 'undefined') return false;
+          try { i32[addr >> 2] = value; return true; } catch(e) { return false; }
+      }
+
+      function updateInputHighlight() {
+          [el.scanValue, el.injectAddr, el.injectVal].forEach(function(inp) {
+              if (!inp) return;
+              inp.style.borderColor = '#1a2a3d';
+              inp.style.boxShadow = 'none';
+              inp.style.backgroundColor = '#050a12';
+          });
+
+          if (currentFocus === 'scan' && el.scanValue) {
+              el.scanValue.style.borderColor = '#00e5ff';
+              el.scanValue.style.boxShadow = '0 0 10px rgba(0, 229, 255, 0.2)';
+              el.scanValue.style.backgroundColor = '#081020';
+              try { el.scanValue.focus(); } catch(e) {}
+          } else if (currentFocus === 'addr' && el.injectAddr) {
+              el.injectAddr.style.borderColor = '#ff0055';
+              el.injectAddr.style.boxShadow = '0 0 10px rgba(255, 0, 85, 0.2)';
+              el.injectAddr.style.backgroundColor = '#201018';
+              try { el.injectAddr.focus(); } catch(e) {}
+          } else if (currentFocus === 'val' && el.injectVal) {
+              el.injectVal.style.borderColor = '#ffcc00';
+              el.injectVal.style.boxShadow = '0 0 10px rgba(255, 204, 0, 0.2)';
+              el.injectVal.style.backgroundColor = '#201810';
+              try { el.injectVal.focus(); } catch(e) {}
+          }
+      }
+
+      function setFocus(target) {
+          currentFocus = target;
+          updateInputHighlight();
+          var label = target === 'scan' ? 'SCAN' : target === 'addr' ? 'ADDR' : 'VALUE';
+          setStatus('▶ ' + label, 'info');
+      }
+
+      function handleKeypadInput(key) {
+          var targetInput = null;
+          if (currentFocus === 'scan') targetInput = el.scanValue;
+          else if (currentFocus === 'addr') targetInput = el.injectAddr;
+          else if (currentFocus === 'val') targetInput = el.injectVal;
+          if (!targetInput) return;
+
+          if (key >= '0' && key <= '9') {
+              targetInput.value += key;
+          } else if (key === '*') {
+              targetInput.value += 'A';
+          } else if (key === '#') {
+              targetInput.value += 'F';
+          } else if (key === 'back' || key === 'Backspace') {
+              targetInput.value = targetInput.value.slice(0, -1);
+          } else if (key === 'ok' || key === 'Enter') {
+              if (currentFocus === 'scan') {
+                  if (scanResults.length === 0 || isFirstScan || el.btnNextScan.disabled) {
+                      doFirstScan();
+                  } else {
+                      doNextScan();
+                  }
+              } else if (currentFocus === 'addr' || currentFocus === 'val') {
+                  doInject();
+              }
+          } else if (key === 'clear') {
+              targetInput.value = '';
+          } else if (key === 'up') {
+              scrollOffset = Math.max(0, scrollOffset - 1);
+              renderResults(scanResults);
+          } else if (key === 'down') {
+              var maxLine = 12;
+              var maxScroll = Math.max(0, scanResults.length - maxLine);
+              scrollOffset = Math.min(maxScroll, scrollOffset + 1);
+              renderResults(scanResults);
+          } else if (key === 'left') {
+              setFocus('scan');
+          } else if (key === 'right') {
+              setFocus('val');
+          }
+          
+          updateInputHighlight();
+      }
+
+      function setStatus(msg, type) {
+          if (!el.status) return;
+          var colors = { success: '#00ff88', error: '#ff4444', info: '#64c8ff', inject: '#ff6b6b' };
+          var cls = colors[type] ? type : 'info';
+          el.status.innerHTML = '<span style="color:' + (colors[cls] || '#666') + '">' + msg + '</span>';
+      }
+
+      function updateFreezeCount() {
+          if (!el.freezeCount) return;
+          var count = frozenList.size;
+          el.freezeCount.textContent = '(' + count + ')';
+          el.freezeCount.style.color = count > 0 ? '#ff6b6b' : '#666';
+      }
+
+      function startFreezeLoop() {
+          if (freezeIntervalId !== null) return;
+          freezeIntervalId = setInterval(function() {
+              for (var entry of frozenList) {
+                  var addr = entry[0];
+                  var data = entry[1];
+                  if (isValidAddress(addr)) writeInt(addr, data.value);
+              }
+          }, 150);
+      }
+
+      function stopFreezeLoop() {
+          if (freezeIntervalId !== null) {
+              clearInterval(freezeIntervalId);
+              freezeIntervalId = null;
+          }
+      }
+
+      function toggleFreezeMode() {
+          isFreezeMode = el.freezeToggle.checked;
+          if (!isFreezeMode && frozenList.size > 0) {
+              if (confirm('🔒 ' + frozenList.size + ' address(es) frozen.\nTurn off?')) {
+                  unfreezeAll();
+              } else {
+                  el.freezeToggle.checked = true;
+                  isFreezeMode = true;
+              }
+          }
+          if (isFreezeMode && frozenList.size > 0) startFreezeLoop();
+          else stopFreezeLoop();
+          updateFreezeCount();
+      }
+
+      function freezeAddress(addr, value) {
+          if (!isValidAddress(addr)) { setStatus('❌ Invalid address', 'error'); return false; }
+          if (!frozenList.has(addr)) {
+              var original = readInt(addr);
+              frozenList.set(addr, { value: value, original: original });
+          } else {
+              var data = frozenList.get(addr);
+              data.value = value;
+          }
+          writeInt(addr, value);
+          updateFreezeCount();
+          updateAllResults();
+          if (isFreezeMode) startFreezeLoop();
+          setStatus('🔒 Frozen ' + toHex(addr) + ' = ' + value, 'inject');
+          return true;
+      }
+
+      function unfreezeAddress(addr) {
+          if (!frozenList.has(addr)) { setStatus('❌ Not frozen', 'error'); return false; }
+          var data = frozenList.get(addr);
+          writeInt(addr, data.original);
+          frozenList.delete(addr);
+          updateFreezeCount();
+          updateAllResults();
+          if (frozenList.size === 0) stopFreezeLoop();
+          setStatus('🔓 Unfrozen ' + toHex(addr), 'success');
+          return true;
+      }
+
+      function unfreezeAll() {
+          if (frozenList.size === 0) { setStatus('❌ Nothing frozen', 'error'); return; }
+          for (var entry of frozenList) {
+              var addr = entry[0];
+              var data = entry[1];
+              writeInt(addr, data.original);
+          }
+          var count = frozenList.size;
+          frozenList.clear();
+          stopFreezeLoop();
+          updateFreezeCount();
+          updateAllResults();
+          setStatus('🔓 Unfrozen ' + count + ' address(es)', 'success');
+      }
+
+      function updateAllResults() {
+          if (!scanResults || scanResults.length === 0) return;
+          for (var i = 0; i < scanResults.length; i++) {
+              var item = scanResults[i];
+              var val = readInt(item.address);
+              if (val !== null) item.value = val;
+          }
+          renderResults(scanResults);
+      }
+
+      function scanMemory(value) {
+          var results = [];
+          var numValue = parseInt(value);
+          if (isNaN(numValue)) { setStatus('❌ Invalid number', 'error'); return results; }
+          isScanning = true;
+          var totalSteps = Math.floor((HEAP_END - HEAP_START) / 4);
+          var step = 0, lastProgress = 0;
+          for (var addr = HEAP_START; addr < HEAP_END; addr += 4) {
+              var val = readInt(addr);
+              if (val === null) continue;
+              if (val === numValue) results.push({ address: addr, value: val });
+              step++;
+              if (step % 10000 === 0) {
+                  var progress = Math.floor(step / totalSteps * 100);
+                  if (progress > lastProgress) {
+                      lastProgress = progress;
+                      setStatus('⏳ Scanning... ' + progress + '% (' + results.length + ' found)', 'info');
+                  }
+              }
+          }
+          isScanning = false;
+          return results;
+      }
+
+      function nextScan(value, previousResults) {
+          if (!previousResults || previousResults.length === 0) {
+              setStatus('❌ No previous results', 'error');
+              return [];
+          }
+          var numValue = parseInt(value);
+          if (isNaN(numValue)) { setStatus('❌ Invalid number', 'error'); return []; }
+          var newResults = [];
+          for (var i = 0; i < previousResults.length; i++) {
+              var item = previousResults[i];
+              var currentVal = readInt(item.address);
+              if (currentVal === null) continue;
+              if (currentVal === numValue) newResults.push({ address: item.address, value: currentVal });
+          }
+          return newResults;
+      }
+
+      function renderResultsToCanvas(results) {
+          var canvas = el.canvas;
+          if (!canvas) return;
+
+          var rect = canvas.getBoundingClientRect();
+          var dpr = 2;
+          canvas.width = rect.width * dpr;
+          canvas.height = rect.height * dpr;
+          canvas.style.width = rect.width + 'px';
+          canvas.style.height = rect.height + 'px';
+
+          var ctx = canvas.getContext('2d');
+          ctx.scale(dpr, dpr);
+
+          var w = rect.width;
+          var h = rect.height;
+
+          ctx.clearRect(0, 0, w, h);
+          ctx.fillStyle = '#03060c';
+          ctx.fillRect(0, 0, w, h);
+
+          if (!results || results.length === 0) {
+              ctx.fillStyle = '#334455';
+              ctx.font = '10px monospace';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillText('🔍 MASUKKAN NILAI & KLIK FIRST', w / 2, h / 2);
+              return;
+          }
+
+          ctx.fillStyle = '#445566';
+          ctx.font = '8px monospace';
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'top';
+          ctx.fillText('?? ' + results.length + ' address(es)', 4, 2);
+          ctx.textAlign = 'right';
+          ctx.fillStyle = '#556677';
+          ctx.fillText('KLIK UNTUK INJECT', w - 4, 2);
+
+          var maxShow = 12;
+          var y = 14;
+          var lineHeight = 12;
+
+          var maxScroll = Math.max(0, results.length - maxShow);
+          if (scrollOffset > maxScroll) scrollOffset = maxScroll;
+          if (scrollOffset < 0) scrollOffset = 0;
+
+          var endIndex = Math.min(results.length, scrollOffset + maxShow);
+
+          for (var i = scrollOffset; i < endIndex; i++) {
+              var item = results[i];
+              var addrHex = toHex(item.address);
+              var hexVal = '0x' + (item.value >>> 0).toString(16).toUpperCase();
+              var isFrozen = frozenList.has(item.address);
+
+              if (isFrozen) {
+                  ctx.fillStyle = 'rgba(255, 0, 85, 0.06)';
+                  ctx.fillRect(0, y, w, lineHeight);
+                  ctx.fillStyle = '#ff0055';
+                  ctx.fillRect(0, y, 2, lineHeight);
+              }
+
+              ctx.textAlign = 'left';
+              ctx.fillStyle = '#445566';
+              ctx.font = '6px monospace';
+              ctx.textBaseline = 'top';
+              ctx.fillText('#' + i, 3, y + 1);
+
+              ctx.textAlign = 'left';
+              ctx.fillStyle = '#88bbdd';
+              ctx.font = '7px monospace';
+              ctx.fillText(addrHex, 22, y + 1);
+
+              ctx.textAlign = 'right';
+              ctx.fillStyle = '#00ff88';
+              ctx.font = '7px monospace';
+              ctx.fillText(item.value, w - 38, y + 1);
+
+              ctx.textAlign = 'right';
+              ctx.fillStyle = '#445566';
+              ctx.font = '6px monospace';
+              ctx.fillText(hexVal, w - 4, y + 2);
+
+              if (isFrozen) {
+                  ctx.textAlign = 'right';
+                  ctx.fillStyle = '#ff6b6b';
+                  ctx.font = '6px monospace';
+                  ctx.fillText('🔒', w - 48, y + 1);
+              }
+
+              y += lineHeight;
+          }
+
+          if (results.length > maxShow) {
+              ctx.textAlign = 'center';
+              ctx.fillStyle = '#00e5ff';
+              ctx.font = '7px monospace';
+              ctx.fillText('📜 Scroll: ' + (scrollOffset + 1) + '-' + endIndex + ' / ' + results.length, w / 2, h - 10);
+          }
+      }
+
+      function renderResults(results) {
+          renderResultsToCanvas(results);
+      }
+
+      function doInject() {
+          var addrStr = el.injectAddr.value.trim();
+          var valStr = el.injectVal.value.trim();
+          if (!addrStr || !valStr) { setStatus('❌ Masukkan alamat & nilai', 'error'); return; }
+          var addr = addrStr.startsWith('0x') ? parseInt(addrStr, 16) : parseInt(addrStr);
+          var val = parseInt(valStr);
+          if (isNaN(addr) || isNaN(val)) { setStatus('❌ Invalid', 'error'); return; }
+          if (!isValidAddress(addr)) { setStatus('❌ Address out of range', 'error'); return; }
+          if (writeInt(addr, val)) {
+              for (var i = 0; i < scanResults.length; i++) {
+                  if (scanResults[i].address === addr) {
+                      scanResults[i].value = val;
+                      break;
+                  }
+              }
+              if (isFreezeMode) {
+                  freezeAddress(addr, val);
+                  renderResults(scanResults);
+                  setStatus('💉 INJECTED & 🔒 FROZEN ' + toHex(addr) + ' = ' + val + ' ✅', 'inject');
+              } else {
+                  renderResults(scanResults);
+                  setStatus('💉 INJECTED ' + toHex(addr) + ' = ' + val + ' ✅', 'inject');
+              }
+          } else {
+              setStatus('❌ Gagal inject', 'error');
+          }
+      }
+
+      function doInjectAll() {
+          if (!scanResults || scanResults.length === 0) { setStatus('❌ No results', 'error'); return; }
+          var valStr = el.injectVal.value.trim();
+          if (!valStr) { setStatus('❌ Masukkan nilai', 'error'); return; }
+          var val = parseInt(valStr);
+          if (isNaN(val)) { setStatus('❌ Invalid', 'error'); return; }
+          var successCount = 0;
+          for (var i = 0; i < scanResults.length; i++) {
+              var item = scanResults[i];
+              if (writeInt(item.address, val)) {
+                  item.value = val;
+                  successCount++;
+                  if (isFreezeMode) {
+                      if (!frozenList.has(item.address)) {
+                          var original = readInt(item.address);
+                          frozenList.set(item.address, { value: val, original: original });
+                      } else {
+                          var data = frozenList.get(item.address);
+                          data.value = val;
+                      }
+                  }
+              }
+          }
+          if (isFreezeMode && successCount > 0) {
+              updateFreezeCount();
+              if (isFreezeMode) startFreezeLoop();
+          }
+          renderResults(scanResults);
+          setStatus('💉 INJECTED ' + successCount + ' address(es) = ' + val + ' ✅', 'inject');
+      }
+
+      function doRefresh() {
+          if (!scanResults || scanResults.length === 0) { setStatus('❌ No results', 'error'); return; }
+          updateAllResults();
+          setStatus('⟳ Refreshed ' + scanResults.length + ' address(es)', 'info');
+      }
+
+      function doFirstScan() {
+          if (isScanning) { setStatus('⏳ Scanning...', 'info'); return; }
+          var value = el.scanValue.value.trim();
+          if (!value) { setStatus('❌ Masukkan nilai', 'error'); setFocus('scan'); return; }
+          if (typeof i32 === 'undefined') { setStatus('❌ J2ME not ready', 'error'); return; }
+          isFirstScan = true;
+          scrollOffset = 0;
+          setStatus('⏳ Scanning...', 'info');
+          setTimeout(function() {
+              try {
+                  var results = scanMemory(value);
+                  scanResults = results;
+                  renderResults(results);
+                  el.btnNextScan.disabled = results.length === 0;
+                  if (results.length === 0) setStatus('❌ Tidak ditemukan', 'error');
+                  else if (results.length === 1) setStatus('🎯 Single address found!', 'success');
+                  else setStatus('✅ Found ' + results.length + ' results', 'success');
+              } catch(e) {
+                  setStatus('❌ Error: ' + e.message, 'error');
+                  console.error(e);
+              }
+          }, 50);
+      }
+
+      function doNextScan() {
+          if (isScanning) { setStatus('⏳ Scanning...', 'info'); return; }
+          if (!scanResults || scanResults.length === 0) { setStatus('❌ No previous results', 'error'); return; }
+          var value = el.scanValue.value.trim();
+          if (!value) { setStatus('❌ Masukkan nilai', 'error'); setFocus('scan'); return; }
+          scrollOffset = 0;
+          setStatus('⏳ Refining...', 'info');
+          setTimeout(function() {
+              try {
+                  var results = nextScan(value, scanResults);
+                  scanResults = results;
+                  renderResults(results);
+                  el.btnNextScan.disabled = results.length === 0;
+                  if (results.length === 0) setStatus('❌ Tidak ada yang cocok', 'error');
+                  else if (results.length === 1) setStatus('🎯 Single address found!', 'success');
+                  else setStatus('✅ Refined: ' + results.length + ' results', 'success');
+              } catch(e) {
+                  setStatus('❌ Error: ' + e.message, 'error');
+                  console.error(e);
+              }
+          }, 50);
+      }
+
+      function doClear() {
+          scanResults = [];
+          scrollOffset = 0;
+          if (frozenList.size > 0) {
+              if (confirm('🧹 Clear all including frozen?')) unfreezeAll();
+          }
+          renderResults([]);
+          el.scanValue.value = '';
+          el.injectAddr.value = '';
+          el.injectVal.value = '';
+          el.btnNextScan.disabled = true;
+          isFirstScan = true;
+          setStatus('🧹 Cleared', 'info');
+          setFocus('scan');
+      }
+
+      function toggleEditor() {
+          var isActive = el.editor.classList.toggle('active');
+          if (isActive) {
+              setTimeout(function() {
+                  setFocus('scan');
+                  renderResultsToCanvas(scanResults);
+              }, 100);
+          }
+      }
+
+      function setupCanvasClick() {
+          var canvas = el.canvas;
+          if (!canvas) return;
+
+          canvas.addEventListener('click', function(e) {
+              if (!scanResults || scanResults.length === 0) return;
+
+              var rect = canvas.getBoundingClientRect();
+              var y = (e.clientY - rect.top) / rect.height * rect.height;
+              var lineHeight = 12;
+              var startY = 14;
+              var clickedRow = Math.floor((y - startY) / lineHeight);
+              var index = scrollOffset + clickedRow;
+
+              if (clickedRow >= 0 && index < scanResults.length) {
+                  var item = scanResults[index];
+                  el.injectAddr.value = toHex(item.address);
+                  el.injectVal.value = item.value;
+                  setFocus('val');
+                  setStatus('📌 ' + toHex(item.address) + ' = ' + item.value, 'info');
+              }
+          });
+
+          canvas.addEventListener('wheel', function(e) {
+              e.preventDefault();
+              if (e.deltaY > 0) {
+                  var maxLine = 12;
+                  var maxScroll = Math.max(0, scanResults.length - maxLine);
+                  scrollOffset = Math.min(maxScroll, scrollOffset + 1);
+              } else {
+                  scrollOffset = Math.max(0, scrollOffset - 1);
+              }
+              renderResults(scanResults);
+          }, { passive: false });
+
+          var startYTouch = 0;
+          canvas.addEventListener('touchstart', function(e) {
+              if (e.touches.length === 1) {
+                  startYTouch = e.touches[0].clientY;
+              }
+          }, { passive: true });
+
+          canvas.addEventListener('touchmove', function(e) {
+              if (e.touches.length === 1) {
+                  var currentY = e.touches[0].clientY;
+                  var diff = startYTouch - currentY;
+                  if (Math.abs(diff) > 15) {
+                      var maxLine = 12;
+                      var maxScroll = Math.max(0, scanResults.length - maxLine);
+                      if (diff > 0) {
+                          scrollOffset = Math.min(maxScroll, scrollOffset + 1);
+                      } else {
+                          scrollOffset = Math.max(0, scrollOffset - 1);
+                      }
+                      startYTouch = currentY;
+                      renderResults(scanResults);
+                  }
+              }
+          }, { passive: true });
+      }
+
+      function waitForJ2ME() {
+          var attempts = 0;
+          var interval = setInterval(function() {
+              attempts++;
+              if (typeof i32 !== 'undefined' && typeof J2ME !== 'undefined') {
+                  clearInterval(interval);
+                  setStatus('✅ J2ME READY!', 'success');
+                  el.btnFirstScan.disabled = false;
+                  renderResults(scanResults);
+              } else if (attempts >= 100) {
+                  clearInterval(interval);
+                  setStatus('⚠️ J2ME NOT DETECTED', 'error');
+              } else if (attempts % 10 === 0) {
+                  setStatus('⏳ WAITING J2ME... (' + Math.floor(attempts) + '%)', 'info');
+              }
+          }, 300);
+      }
+
+      function resizeCanvas() {
+          if (el.canvas) {
+              var rect = el.canvas.getBoundingClientRect();
+              var dpr = 2;
+              el.canvas.width = rect.width * dpr;
+              el.canvas.height = rect.height * dpr;
+              el.canvas.style.width = rect.width + 'px';
+              el.canvas.style.height = rect.height + 'px';
+              renderResultsToCanvas(scanResults);
+          }
+      }
+
+      function setupKeypadNavigation() {
+          var numButtons = document.querySelectorAll('.numpad button');
+          
+          numButtons.forEach(function(btn) {
+              btn.addEventListener('click', function(e) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  var key = this.dataset.key;
+                  handleKeypadInput(key);
+              });
+          });
+
+          var navButtons = document.querySelectorAll('.nav-up, .nav-down, .nav-left, .nav-right');
+          navButtons.forEach(function(btn) {
+              btn.addEventListener('click', function(e) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  var key = this.dataset.key;
+                  handleKeypadInput(key);
+              });
+          });
+
+          if (el.btnOk) {
+              el.btnOk.addEventListener('click', function(e) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleKeypadInput('ok');
+              });
+          }
+
+          if (el.btnBack) {
+              el.btnBack.addEventListener('click', function(e) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleKeypadInput('back');
+              });
+          }
+
+          var clearBtn = document.querySelector('button[data-key="clear"]');
+          if (clearBtn) {
+              clearBtn.addEventListener('click', function(e) {
+                  if (el.editor.classList.contains('active')) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleKeypadInput('clear');
+                  }
+              });
+          }
+
+          document.addEventListener('keydown', function(e) {
+              if (el.editor.classList.contains('active')) {
+                  if (e.key >= '0' && e.key <= '9') {
+                      e.preventDefault();
+                      handleKeypadInput(e.key);
+                  } else if (e.key === 'Enter' || e.key === 'ok') {
+                      e.preventDefault();
+                      handleKeypadInput('ok');
+                  } else if (e.key === 'Backspace') {
+                      e.preventDefault();
+                      handleKeypadInput('back');
+                  } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      handleKeypadInput('up');
+                  } else if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      handleKeypadInput('down');
+                  } else if (e.key === 'ArrowLeft') {
+                      e.preventDefault();
+                      handleKeypadInput('left');
+                  } else if (e.key === 'ArrowRight') {
+                      e.preventDefault();
+                      handleKeypadInput('right');
+                  }
+              }
+          });
+      }
+
+      function setup() {
+          el.closeBtn.addEventListener('click', toggleEditor);
+
+          var soft1Btn = document.getElementById('me-toggle-softkey');
+          if (soft1Btn) {
+              var triggerHandler = function(e) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  toggleEditor();
+              };
+              soft1Btn.addEventListener('touchstart', triggerHandler, { capture: true });
+              soft1Btn.addEventListener('mousedown', triggerHandler, { capture: true });
+              soft1Btn.addEventListener('click', triggerHandler, { capture: true });
+          }
+
+          el.btnFirstScan.addEventListener('click', function(e) { e.preventDefault(); doFirstScan(); });
+          el.btnNextScan.addEventListener('click', function(e) { e.preventDefault(); doNextScan(); });
+          el.btnClear.addEventListener('click', function(e) { e.preventDefault(); doClear(); });
+          el.btnInject.addEventListener('click', function(e) { e.preventDefault(); doInject(); });
+          el.btnInjectAll.addEventListener('click', function(e) { e.preventDefault(); doInjectAll(); });
+          el.btnRefresh.addEventListener('click', function(e) { e.preventDefault(); doRefresh(); });
+          el.freezeToggle.addEventListener('change', toggleFreezeMode);
+          el.btnUnfreezeAll.addEventListener('click', function(e) { e.preventDefault(); unfreezeAll(); });
+
+          el.scanValue.addEventListener('click', function() { setFocus('scan'); });
+          el.injectAddr.addEventListener('click', function() { setFocus('addr'); });
+          el.injectVal.addEventListener('click', function() { setFocus('val'); });
+
+          el.scanValue.addEventListener('input', function() { updateInputHighlight(); });
+          el.injectAddr.addEventListener('input', function() { updateInputHighlight(); });
+          el.injectVal.addEventListener('input', function() { updateInputHighlight(); });
+
+          document.addEventListener('keydown', function(e) {
+              if (e.ctrlKey && (e.key === 'm' || e.key === 'M')) {
+                  e.preventDefault();
+                  toggleEditor();
+              }
+              if (e.key === 'Escape' && el.editor.classList.contains('active')) toggleEditor();
+          });
+
+          el.btnNextScan.disabled = true;
+          el.btnFirstScan.disabled = true;
+          updateFreezeCount();
+
+          setupCanvasClick();
+          setupKeypadNavigation();
+
+          window.addEventListener('resize', resizeCanvas);
+
+          var observer = new MutationObserver(function() {
+              if (el.editor.classList.contains('active')) {
+                  setTimeout(resizeCanvas, 50);
+              }
+          });
+          observer.observe(el.editor, { attributes: true, attributeFilter: ['class'] });
+
+          waitForJ2ME();
+      }
+
+      window.MemoryInjector = {
+          scan: doFirstScan,
+          next: doNextScan,
+          inject: doInject,
+          injectAll: doInjectAll,
+          refresh: doRefresh,
+          clear: doClear,
+          toggle: toggleEditor,
+          freeze: freezeAddress,
+          unfreeze: unfreezeAddress,
+          unfreezeAll: unfreezeAll,
+          results: function() { return scanResults; },
+          frozen: function() { return Array.from(frozenList.keys()); },
+          getValue: function(addr) { return readInt(addr); },
+          setValue: function(addr, val) { return writeInt(addr, val); },
+          render: function() { renderResults(scanResults); },
+          focus: setFocus
+      };
+
+      if (document.readyState === 'complete') {
+          setup();
+      } else {
+          document.addEventListener('DOMContentLoaded', setup);
+      }
+
+  })();
+  </script>
+
+  <script src="keymap.js"></script>
 
 </body>
 
